@@ -11,8 +11,7 @@ namespace SharpRadar
         private readonly Thread _worker;
         private uint _pid; // Stores EscapeFromTarkov.exe PID
         private ulong _baseModule; // Stores UnityPlayer.DLL Module Base Entry
-        private ulong _gom;
-        private ulong _gameWorld;
+        private GameObjectManager _gom;
         private ulong _localGameWorld;
 
         public Memory()
@@ -94,8 +93,9 @@ namespace SharpRadar
         {
             try
             {
-                _gom = AddressOf(_baseModule + (ulong)Offsets.Startup.GameObjectManager);
-                Console.WriteLine($"Found Game Object Manager at 0x{_gom.ToString("x")}");
+                var addr = AddressOf(_baseModule + (ulong)Offsets.Startup.GameObjectManager);
+                _gom = ReadMemoryStruct<GameObjectManager>(addr);
+                Console.WriteLine($"Found Game Object Manager at 0x{addr.ToString("x")}");
                 return true;
             }
             catch (Exception ex)
@@ -117,12 +117,13 @@ namespace SharpRadar
         {
             try
             {
-                ulong nextActiveNode = AddressOf(_gom + 0x28);
-                ulong lastActiveNode = AddressOf(_gom + 0x20);
-                _gameWorld = GetObjectFromList(nextActiveNode, lastActiveNode, "GameWorld");
-                if (_gameWorld == 0) throw new DMAException("Unable to find GameWorld");
-                Console.WriteLine($"Found Game World at 0x{_gameWorld.ToString("x")}");
-                _localGameWorld = AddressOf(_gameWorld + 0x30);
+                var gameWorld = GetObjectFromList(
+                    AddressOf(_gom.ActiveNodes), 
+                    AddressOf(_gom.LastActiveNode), 
+                    "GameWorld");
+                if (gameWorld == 0) throw new DMAException("Unable to find GameWorld");
+                Console.WriteLine($"Found Game World at 0x{gameWorld.ToString("x")}");
+                _localGameWorld = AddressOf(gameWorld + 0x30);
                 _localGameWorld = AddressOf(_localGameWorld + 0x18);
                 _localGameWorld = AddressOf(_localGameWorld + 0x28);
                 ulong rgtPlayersPtr = AddressOf(_localGameWorld + 0x80);
