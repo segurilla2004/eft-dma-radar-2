@@ -11,7 +11,9 @@ namespace SharpRadar
         private readonly Thread _worker;
         private uint _pid; // Stores EscapeFromTarkov.exe PID
         private ulong _baseModule; // Stores UnityPlayer.DLL Module Base Entry
-        private GameObjectManager _gom;
+        private ulong _gom;
+        private ulong _gameWorld;
+        private ulong _localGameWorld;
 
         public Memory()
         {
@@ -31,7 +33,7 @@ namespace SharpRadar
                     if (GetPid() 
                     && GetModuleBase() 
                     && GetGOM() 
-                    && GetGW() // ToDo
+                    && GetLGW() // ToDo
                     )
                     {
                         break;
@@ -92,9 +94,8 @@ namespace SharpRadar
         {
             try
             {
-                ulong addr = _baseModule + (ulong)Offsets.Startup.GameObjectManager;
-                _gom = ReadMemoryStruct<GameObjectManager>(addr);
-                Console.WriteLine($"Found Game Object Manager at 0x{addr.ToString("x")}");
+                _gom = AddressOf(_baseModule + (ulong)Offsets.Startup.GameObjectManager);
+                Console.WriteLine($"Found Game Object Manager at 0x{_gom.ToString("x")}");
                 return true;
             }
             catch (Exception ex)
@@ -107,12 +108,27 @@ namespace SharpRadar
         /// <summary>
         /// ToDo - Not working yet
         /// </summary>
-        private bool GetGW()
+        /// 
+        //        public ulong LastActiveNode; // 0x20
+
+        //public ulong ActiveNodes; // 0x28
+        //  GetObjectFromList(NextActiveNode, LastActiveNode, "GameWorld");
+        private bool GetLGW()
         {
             try
             {
-                // Work in progress
-                Console.WriteLine($"Found Game World at 0x  (WORK IN PROGRESS)");
+                ulong nextActiveNode = AddressOf(_gom + 0x28);
+                ulong lastActiveNode = AddressOf(_gom + 0x20);
+                _gameWorld = GetObjectFromList(nextActiveNode, lastActiveNode, "GameWorld");
+                if (_gameWorld == 0) throw new DMAException("Unable to find GameWorld");
+                Console.WriteLine($"Found Game World at 0x{_gameWorld.ToString("x")}");
+                _localGameWorld = AddressOf(_gameWorld + 0x30);
+                _localGameWorld = AddressOf(_localGameWorld + 0x18);
+                _localGameWorld = AddressOf(_localGameWorld + 0x28);
+                ulong rgtPlayersPtr = AddressOf(_localGameWorld + 0x80);
+                Console.WriteLine($"The ptr to registered players is {rgtPlayersPtr.ToString("x")}");
+                int playerCnt = ReadMemoryInt(rgtPlayersPtr + 0x18);
+                Console.WriteLine("Online Raid Player Count is: " + playerCnt);
                 return true;
             }
             catch (Exception ex)
@@ -122,7 +138,43 @@ namespace SharpRadar
             }
         }
 
-        private ulong ReadMemoryPtr(ulong addr) // read 8 bytes (64bit pointer length)
+        private ulong GetObjectFromList(ulong listPtr, ulong lastObjectPtr, string objectName)
+        {
+            var activeObject = ReadMemoryStruct<BaseObject>(AddressOf(listPtr));
+            var lastObject = ReadMemoryStruct<BaseObject>(AddressOf(lastObjectPtr));
+
+            if (activeObject.obj != 0x0)
+            {
+                while (activeObject.obj != 0x0 && activeObject.obj != lastObject.obj)
+                {
+                    var classNamePtr = activeObject.obj + 0x60;
+
+                    var memStr = ReadMemoryString(AddressOf(classNamePtr), 64);
+
+                    if (memStr.Contains(objectName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        Console.WriteLine($"Found object {memStr}");
+                        return activeObject.obj;
+                    }
+
+                    activeObject = ReadMemoryStruct<BaseObject>(activeObject.nextObjectLink); // Read next object
+                }
+                Console.WriteLine($"Couldn't find object {objectName}");
+            }
+
+            return 0;
+        }
+
+        /// <summary>
+        /// Resolves a pointer and returns the memory address it points to.
+        /// </summary>
+        private ulong AddressOf(ulong ptr)
+        {
+            if (_pid == 0) throw new DMAException("Unable to resolve pointer address, invalid/missing PID.");
+            else return BitConverter.ToUInt64(vmm.MemRead(_pid, ptr, 8, 0), 0);
+        }
+
+        private ulong ReadMemoryUlong(ulong addr) // read 8 bytes (uint64)
         {
             try
             {
@@ -189,11 +241,11 @@ namespace SharpRadar
                 throw new DMAException($"ERROR reading memory at 0x{addr.ToString("X")}", ex);
             }
         }
-        private bool ReadMemoryBool(ulong addr) // read 2 bytes (bool)
+        private bool ReadMemoryBool(ulong addr) // read 1 byte (bool)
         {
             try
             {
-                return BitConverter.ToBoolean(vmm.MemRead(_pid, addr, 2, 0), 0);
+                return BitConverter.ToBoolean(vmm.MemRead(_pid, addr, 1, 0), 0);
             }
             catch (Exception ex)
             {
@@ -230,7 +282,7 @@ namespace SharpRadar
             try
             {
                 var buffer = vmm.MemRead(_pid, addr, size, 0);
-                return Encoding.UTF8.GetString(buffer);
+                return Encoding.Default.GetString(buffer);
             }
             catch (Exception ex)
             {

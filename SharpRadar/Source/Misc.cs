@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using vmmsharp;
 
 namespace SharpRadar
 {
@@ -13,6 +14,10 @@ namespace SharpRadar
         {
             t.Stop();
             t.Start();
+        }
+        public static bool Contains(this string source, string toCheck, StringComparison comp)
+        {
+            return source?.IndexOf(toCheck, comp) >= 0;
         }
     }
 }
