@@ -108,11 +108,6 @@ namespace SharpRadar
         /// <summary>
         /// ToDo - Not working yet
         /// </summary>
-        /// 
-        //        public ulong LastActiveNode; // 0x20
-
-        //public ulong ActiveNodes; // 0x28
-        //  GetObjectFromList(NextActiveNode, LastActiveNode, "GameWorld");
         private bool GetLGW()
         {
             try
@@ -171,20 +166,7 @@ namespace SharpRadar
         /// </summary>
         private ulong AddressOf(ulong ptr)
         {
-            if (_pid == 0) throw new DMAException("Unable to resolve pointer address, invalid/missing PID.");
-            else return BitConverter.ToUInt64(vmm.MemRead(_pid, ptr, 8, 0), 0);
-        }
-
-        private ulong ReadMemoryUlong(ulong addr) // read 8 bytes (uint64)
-        {
-            try
-            {
-                return BitConverter.ToUInt64(vmm.MemRead(_pid, addr, 8, 0), 0);
-            }
-            catch (Exception ex)
-            {
-                throw new DMAException($"ERROR reading memory at 0x{addr.ToString("X")}", ex);
-            }
+            return BitConverter.ToUInt64(vmm.MemRead(_pid, ptr, 8, 0), 0);
         }
 
         private long ReadMemoryLong(ulong addr) // read 8 bytes (int64)
