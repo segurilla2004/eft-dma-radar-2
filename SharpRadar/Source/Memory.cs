@@ -105,9 +105,6 @@ namespace SharpRadar
             }
         }
 
-        /// <summary>
-        /// ToDo - Not working yet
-        /// </summary>
         private bool GetLGW()
         {
             try
@@ -116,20 +113,21 @@ namespace SharpRadar
                     AddressOf(_gom.ActiveNodes), 
                     AddressOf(_gom.LastActiveNode), 
                     "GameWorld");
-                if (gameWorld == 0) throw new DMAException("Unable to find GameWorld");
+                if (gameWorld == 0) throw new DMAException("Unable to find GameWorld, not in raid.");
                 Console.WriteLine($"Found Game World at 0x{gameWorld.ToString("x")}");
                 _localGameWorld = AddressOf(gameWorld + 0x30);
                 _localGameWorld = AddressOf(_localGameWorld + 0x18);
                 _localGameWorld = AddressOf(_localGameWorld + 0x28);
+                Console.WriteLine($"Found Local Game World at 0x{_localGameWorld.ToString("X")}");
                 ulong rgtPlayersPtr = AddressOf(_localGameWorld + 0x80);
-                Console.WriteLine($"The ptr to registered players is {rgtPlayersPtr.ToString("x")}");
+                Console.WriteLine($"Found Registered players at 0x{rgtPlayersPtr.ToString("x")}");
                 int playerCnt = ReadMemoryInt(rgtPlayersPtr + 0x18);
                 Console.WriteLine("Online Raid Player Count is: " + playerCnt);
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"ERROR getting Game World: {ex}");
+                Console.WriteLine($"ERROR getting Local Game World: {ex}");
                 return false;
             }
         }
