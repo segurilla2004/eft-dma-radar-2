@@ -3,7 +3,7 @@ Work-in-progress, taking a break from this project but wanted to share my work. 
 
 STATE:
 - GUI is functional but is not connected to Memory Module
-- Memory Module is functional and can locate the Local Game World and print the player count, but that's it.
+- Memory Module is functional and can locate the Local Game World. It will print the online raid player count, and print all player nicknames.
 
 ### Demo
 ![Demo](https://user-images.githubusercontent.com/42287509/146780656-f00aad48-7857-4566-9dd7-880c31956bde.jpg)
