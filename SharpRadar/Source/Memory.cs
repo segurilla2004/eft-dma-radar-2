@@ -70,8 +70,8 @@ namespace SharpRadar
                                     var playerProfile = AddressOf(playerBase + 0x4b0);
                                     var playerInfo = AddressOf(playerProfile + 0x28);
                                     var playerNickname = AddressOf(playerInfo + 0x10);
-                                    var name = ReadMemoryString(playerNickname, 64);
-                                    Console.WriteLine($"Player {i + 1}: {name}"); // For testing purposes
+                                    var nicknameStr = ReadMemoryString(playerNickname, 64);
+                                    Console.WriteLine($"Player {i + 1}: {nicknameStr}"); // For testing purposes
                                 }
                                 Thread.Sleep(2200); // Tick
                             }
@@ -196,9 +196,10 @@ namespace SharpRadar
         /// <summary>
         /// Resolves a pointer and returns the memory address it points to.
         /// </summary>
-        private ulong AddressOf(ulong ptr)
+        private ulong AddressOf(ulong ptr) => ReadMemoryUlong(ptr);
+        private ulong ReadMemoryUlong(ulong addr)
         {
-            return BitConverter.ToUInt64(vmm.MemRead(_pid, ptr, 8, 0), 0);
+            return BitConverter.ToUInt64(vmm.MemRead(_pid, addr, 8, 0), 0);
         }
 
         private long ReadMemoryLong(ulong addr) // read 8 bytes (int64)
