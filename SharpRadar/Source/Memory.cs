@@ -13,6 +13,14 @@ namespace SharpRadar
         private ulong _baseModule; // Stores UnityPlayer.DLL Module Base Entry
         private GameObjectManager _gom;
         private ulong _localGameWorld;
+        private volatile bool _inGame = false;
+        public bool InGame
+        {
+            get
+            {
+                return _inGame;
+            }
+        }
 
         public Memory()
         {
@@ -31,8 +39,7 @@ namespace SharpRadar
                 {
                     if (GetPid() 
                     && GetModuleBase() 
-                    && GetGOM() 
-                    && GetLGW() // ToDo
+                    && GetGOM()
                     )
                     {
                         break;
@@ -43,9 +50,40 @@ namespace SharpRadar
                         Thread.Sleep(15000);
                     }
                 }
-                while (Heartbeat()) // Main loop
+                while (Heartbeat()) // Game is running, wait for raid entry
                 {
-                    Thread.Sleep(33); // Tick interval
+                    if (GetLGW()) // Try find raid
+                    {
+                        _inGame = true;
+                        ulong rgtPlayers = AddressOf(_localGameWorld + 0x80);
+                        while (Heartbeat()) // Main loop
+                        {
+                            try
+                            {
+                                int playerCnt = ReadMemoryInt(rgtPlayers + 0x18);
+                                Console.WriteLine("Online Raid Player Count is: " + playerCnt);
+                                ulong listBase = AddressOf(rgtPlayers + 0x0010);
+                                for (uint i = 0; i < playerCnt; i++)
+                                {
+                                    ulong playerBase = AddressOf(listBase + 0x20 + (i * 0x8));
+                                    /// ToDo - Get Player Location Transform
+                                    var playerProfile = AddressOf(playerBase + 0x4b0);
+                                    var playerInfo = AddressOf(playerProfile + 0x28);
+                                    var playerNickname = AddressOf(playerInfo + 0x10);
+                                    var name = ReadMemoryString(playerNickname, 64);
+                                    Console.WriteLine($"Player {i + 1}: {name}"); // For testing purposes
+                                }
+                                Thread.Sleep(2200); // Tick
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine("Game ended? " + ex.ToString()); // for debug purposes
+                                break;
+                            }
+                        }
+                        _inGame = false;
+                    }
+                    else Thread.Sleep(5000);
                 }
                 Console.WriteLine("EscapeFromTarkov.exe is no longer running... Attempting to restart...");
             }
@@ -119,10 +157,6 @@ namespace SharpRadar
                 _localGameWorld = AddressOf(_localGameWorld + 0x18);
                 _localGameWorld = AddressOf(_localGameWorld + 0x28);
                 Console.WriteLine($"Found Local Game World at 0x{_localGameWorld.ToString("X")}");
-                ulong rgtPlayersPtr = AddressOf(_localGameWorld + 0x80);
-                Console.WriteLine($"Found Registered players at 0x{rgtPlayersPtr.ToString("x")}");
-                int playerCnt = ReadMemoryInt(rgtPlayersPtr + 0x18);
-                Console.WriteLine("Online Raid Player Count is: " + playerCnt);
                 return true;
             }
             catch (Exception ex)
