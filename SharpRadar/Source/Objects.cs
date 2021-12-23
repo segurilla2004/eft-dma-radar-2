@@ -1,6 +1,8 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Concurrent;
 using System.Drawing;
+using System.IO;
 using System.Threading;
 
 namespace SharpRadar
@@ -99,5 +101,39 @@ namespace SharpRadar
         public ulong listBase; //0x0010    to ListInternal
         public int itemCount; //0x0018 
     }; //Size=0x001C
+
+    public class Map
+    {
+        public readonly Bitmap MapFile;
+        public readonly MapConfig ConfigFile;
+
+        public Map(Bitmap map, MapConfig config)
+        {
+            MapFile = map;
+            ConfigFile = config;
+        }
+    }
+
+    public class MapConfig
+    {
+        [JsonProperty("x")]
+        public float X;
+        [JsonProperty("y")]
+        public float Y;
+        [JsonProperty("z")]
+        public float Z;
+        [JsonProperty("scale")]
+        public float Scale;
+
+
+        public static MapConfig LoadFromFile(string file)
+        {
+            using (var stream = File.OpenText(file))
+            {
+                var json = new JsonSerializer();
+                return (MapConfig)json.Deserialize(stream, typeof(MapConfig));
+            }
+        }
+    }
 
 }

@@ -32,6 +32,7 @@
             this.mapCanvas = new System.Windows.Forms.PictureBox();
             this.trackBar_Zoom = new System.Windows.Forms.TrackBar();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.button_Map = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.mapCanvas)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar_Zoom)).BeginInit();
             this.groupBox1.SuspendLayout();
@@ -68,6 +69,7 @@
             // 
             // groupBox1
             // 
+            this.groupBox1.Controls.Add(this.button_Map);
             this.groupBox1.Controls.Add(this.trackBar_Zoom);
             this.groupBox1.Dock = System.Windows.Forms.DockStyle.Right;
             this.groupBox1.Location = new System.Drawing.Point(919, 0);
@@ -76,6 +78,16 @@
             this.groupBox1.TabIndex = 7;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Testing Controls";
+            // 
+            // button_Map
+            // 
+            this.button_Map.Location = new System.Drawing.Point(51, 55);
+            this.button_Map.Name = "button_Map";
+            this.button_Map.Size = new System.Drawing.Size(75, 23);
+            this.button_Map.TabIndex = 7;
+            this.button_Map.Text = "Map";
+            this.button_Map.UseVisualStyleBackColor = true;
+            this.button_Map.Click += new System.EventHandler(this.button_Map_Click);
             // 
             // MainForm
             // 
@@ -102,6 +114,7 @@
         private System.Windows.Forms.PictureBox mapCanvas;
         private System.Windows.Forms.TrackBar trackBar_Zoom;
         private System.Windows.Forms.GroupBox groupBox1;
+        private System.Windows.Forms.Button button_Map;
     }
 }
 

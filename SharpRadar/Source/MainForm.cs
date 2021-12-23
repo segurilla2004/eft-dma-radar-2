@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -15,10 +16,11 @@ namespace SharpRadar
     public partial class MainForm : Form
     {
         private readonly Memory _memory;
-        private Bitmap _currentMap;
+        private List<Map> _allMaps;
+        private int _mapIndex = 0;
+        private Map _currentMap;
         private Bitmap _currentRender;
-        private System.Timers.Timer _timer;
-        private static Random _rng = new Random();
+        private object _renderLock = new object();
         private float _zoom = 1.0f;
         private int _lastZoom = 0;
         private const int _maxZoom = 3500;
@@ -31,14 +33,37 @@ namespace SharpRadar
         {
             InitializeComponent();
             _memory = memory;
+            var maps = Directory.GetFiles("\\Maps", "*.png"); // Get all PNG Files
+            if (maps.Length == 0) throw new IOException("Unable to load map files at \\Maps");
+            _allMaps = new List<Map>();
+            foreach (var map in maps)
+            {
+                var config = Path.GetFileNameWithoutExtension(map) + ".json";
+                if (!File.Exists(config)) throw new IOException($"Map JSON Config missing for {map}");
+                _allMaps.Add(new Map
+                (
+                    new Bitmap(Image.FromFile(map)),
+                    MapConfig.LoadFromFile(config))
+                );
+            }
+            _currentMap = _allMaps[0];
             this.DoubleBuffered = true; // Prevent flickering
             this.Resize += this.MainForm_Resize;
-            _currentMap = new Bitmap(Image.FromFile("Resources\\lighthouse.png")); // Load Map File
-            _currentRender = (Bitmap)_currentMap.Clone();
+            _currentRender = (Bitmap)_currentMap.MapFile.Clone();
             mapCanvas.Paint += this.mapCanvas_OnPaint;
-            _timer = new System.Timers.Timer(33);
-            _timer.Elapsed += this.tick;
-            _timer.Start();
+            this.Shown += MainForm_Shown;
+        }
+
+        private async void MainForm_Shown(object sender, EventArgs e)
+        {
+            while (true)
+            {
+                lock (_renderLock)
+                {
+                    refresh();
+                }
+                await Task.Delay(33); // Render timer (~30 fps?)
+            }
         }
 
         /// <summary>
@@ -46,18 +71,12 @@ namespace SharpRadar
         /// </summary>
         private void MainForm_Resize(object sender, System.EventArgs e)
         {
-            _timer.Reset();
-            mapCanvas.Size = new Size(this.Height, this.Height); // Keep square aspect ratio
-            mapCanvas.Location = new Point(0, 0); // Keep in top left corner
-            refresh();
-        }
-
-        /// <summary>
-        /// Render timer (~30 fps?)
-        /// </summary>
-        private void tick(Object source, System.Timers.ElapsedEventArgs e)
-        {
-            refresh();
+            lock (_renderLock)
+            {
+                mapCanvas.Size = new Size(this.Height, this.Height); // Keep square aspect ratio
+                mapCanvas.Location = new Point(0, 0); // Keep in top left corner
+                refresh();
+            }
         }
 
         /// <summary>
@@ -77,12 +96,11 @@ namespace SharpRadar
                     }
                 }
             }
-            while (_memory.InGame)
+            if (_memory.InGame)
             {
                 mapCanvas.Invalidate(); // Clears canvas, causing it to be re-drawn
-                return;
             }
-            _startup = false;
+            else _startup = false;
         }
 
         /// <summary>
@@ -118,7 +136,7 @@ namespace SharpRadar
             if (strokeLength < 5) strokeLength = 5; // Min value
             int strokeWidth = zoom / 300; // Lower constant = wider stroke
             if (strokeWidth < 4) strokeWidth = 4; // Min value
-            using (var render = (Bitmap)_currentMap.Clone()) // Get a fresh map to draw on
+            using (var render = (Bitmap)_currentMap.MapFile.Clone()) // Get a fresh map to draw on
             using (var grn = new Pen(Color.LimeGreen)
             {
                 Width = strokeWidth
@@ -205,6 +223,14 @@ namespace SharpRadar
         private MapPosition VectorToPositions(UnityEngine.Vector3 vector)
         {
             return new MapPosition();
+        }
+
+        private void button_Map_Click(object sender, EventArgs e)
+        {
+            int length = _allMaps.Count;
+            if (_mapIndex == length - 1) _mapIndex = 0; // Start over when end of maps reached
+            else _mapIndex++; // Move onto next map
+            _currentMap = _allMaps[_mapIndex]; // Swap map
         }
     }
 }
