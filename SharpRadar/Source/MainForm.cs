@@ -230,7 +230,10 @@ namespace SharpRadar
             int length = _allMaps.Count;
             if (_mapIndex == length - 1) _mapIndex = 0; // Start over when end of maps reached
             else _mapIndex++; // Move onto next map
-            _currentMap = _allMaps[_mapIndex]; // Swap map
+            lock (_renderLock) // Don't switch map mid-render
+            {
+                _currentMap = _allMaps[_mapIndex]; // Swap map
+            }
         }
     }
 }
