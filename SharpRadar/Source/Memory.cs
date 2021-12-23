@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -49,7 +50,6 @@ namespace SharpRadar
                     }
                     else
                     {
-                        Console.WriteLine("Trying again in 15 seconds...");
                         Thread.Sleep(15000);
                     }
                 }
@@ -58,6 +58,7 @@ namespace SharpRadar
                     if (GetLGW()) // Try find raid
                     {
                         this.Players = new ConcurrentDictionary<string, Player>();
+                        Console.WriteLine("Raid started!");
                         _inGame = true;
                         while (GetRegPlayers()) // Main game loop
                         {
@@ -68,10 +69,10 @@ namespace SharpRadar
                             }
                             catch (Exception ex)
                             {
-                                Console.WriteLine(ex.ToString()); // for debug purposes
+                                Debug.WriteLine(ex.ToString()); // for debug purposes
                             }
                         }
-                        Console.WriteLine("Game ended!");
+                        Console.WriteLine("Raid ended!");
                         _inGame = false;
                     }
                     else Thread.Sleep(5000);
@@ -88,13 +89,13 @@ namespace SharpRadar
                 if (_pid == 0) throw new DMAException("Unable to obtain PID. Game may not be running.");
                 else
                 {
-                    Console.WriteLine($"EscapeFromTarkov.exe is running at PID {_pid}");
+                    Debug.WriteLine($"EscapeFromTarkov.exe is running at PID {_pid}");
                     return true;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"ERROR getting PID: {ex}");
+                Debug.WriteLine($"ERROR getting PID: {ex}");
                 return false;
             }
         }
@@ -107,13 +108,13 @@ namespace SharpRadar
                 if (_baseModule == 0) throw new DMAException("Unable to obtain Base Module Address. Game may not be running");
                 else
                 {
-                    Console.WriteLine($"Found UnityPlayer.dll at 0x{_baseModule.ToString("x")}");
+                    Debug.WriteLine($"Found UnityPlayer.dll at 0x{_baseModule.ToString("x")}");
                     return true;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"ERROR getting module base: {ex}");
+                Debug.WriteLine($"ERROR getting module base: {ex}");
                 return false;
             }
         }
@@ -124,12 +125,12 @@ namespace SharpRadar
             {
                 var addr = AddressOf(_baseModule + 0x17F1CE8);
                 _gom = ReadMemoryStruct<GameObjectManager>(addr);
-                Console.WriteLine($"Found Game Object Manager at 0x{addr.ToString("x")}");
+                Debug.WriteLine($"Found Game Object Manager at 0x{addr.ToString("x")}");
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"ERROR getting Game Object Manager: {ex}");
+                Debug.WriteLine($"ERROR getting Game Object Manager: {ex}");
                 return false;
             }
         }
@@ -143,16 +144,16 @@ namespace SharpRadar
                     AddressOf(_gom.LastActiveNode), 
                     "GameWorld");
                 if (gameWorld == 0) throw new DMAException("Unable to find GameWorld, not in raid.");
-                Console.WriteLine($"Found Game World at 0x{gameWorld.ToString("x")}");
+                Debug.WriteLine($"Found Game World at 0x{gameWorld.ToString("x")}");
                 _localGameWorld = AddressOf(gameWorld + 0x30);
                 _localGameWorld = AddressOf(_localGameWorld + 0x18);
                 _localGameWorld = AddressOf(_localGameWorld + 0x28);
-                Console.WriteLine($"Found Local Game World at 0x{_localGameWorld.ToString("X")}");
+                Debug.WriteLine($"Found Local Game World at 0x{_localGameWorld.ToString("X")}");
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"ERROR getting Local Game World: {ex}");
+                Debug.WriteLine($"ERROR getting Local Game World: {ex}");
                 return false;
             }
         }
@@ -165,7 +166,7 @@ namespace SharpRadar
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"ERROR getting Registered Players: {ex}");
+                Debug.WriteLine($"ERROR getting Registered Players: {ex}");
                 return false;
             }
         }
@@ -185,13 +186,13 @@ namespace SharpRadar
 
                     if (memStr.Contains(objectName, StringComparison.OrdinalIgnoreCase))
                     {
-                        Console.WriteLine($"Found object {memStr}");
+                        Debug.WriteLine($"Found object {memStr}");
                         return activeObject.obj;
                     }
 
                     activeObject = ReadMemoryStruct<BaseObject>(activeObject.nextObjectLink); // Read next object
                 }
-                Console.WriteLine($"Couldn't find object {objectName}");
+                Debug.WriteLine($"Couldn't find object {objectName}");
             }
 
             return 0;
@@ -200,7 +201,7 @@ namespace SharpRadar
         private void GameLoop()
         {
             int playerCnt = ReadMemoryInt(_rgtPlayers + 0x18);
-            Console.WriteLine("Online Raid Player Count is: " + playerCnt);
+            Debug.WriteLine("Online Raid Player Count is: " + playerCnt);
             ulong listBase = AddressOf(_rgtPlayers + 0x0010);
             for (uint i = 0; i < playerCnt; i++)
             {
@@ -214,7 +215,7 @@ namespace SharpRadar
                 var playerGroupIdStr = ReadMemoryString(playerGroupId, 64); // Player's Group Affiliation ID
                 var playerNickname = AddressOf(playerInfo + 0x10);
                 var nicknameStr = ReadMemoryString(playerNickname, 64);
-                Console.WriteLine($"Player {i + 1}: {nicknameStr}"); // For testing purposes
+                Debug.WriteLine($"Player {i + 1}: {nicknameStr}"); // For testing purposes
                 if (this.Players.TryGetValue(playerIdString, out var item)) // Update existing object
                 {
                     item.Position = new UnityEngine.Vector3(0, 0, 0);
