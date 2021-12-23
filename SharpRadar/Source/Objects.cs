@@ -55,6 +55,13 @@ namespace SharpRadar
         }
     }
 
+    public struct MapPosition // Integer map coordinates for GUI
+    {
+        public int X;
+        public int Y;
+        public int Z;
+    }
+
     /// <summary>
     /// EFT/Unity Structures (WIP)
     /// </summary>

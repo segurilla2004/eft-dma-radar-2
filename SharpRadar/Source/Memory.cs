@@ -216,9 +216,9 @@ namespace SharpRadar
                 var playerNickname = AddressOf(playerInfo + 0x10);
                 var nicknameStr = ReadMemoryString(playerNickname, 64);
                 Debug.WriteLine($"Player {i + 1}: {nicknameStr}"); // For testing purposes
-                if (this.Players.TryGetValue(playerIdString, out var item)) // Update existing object
+                if (this.Players.TryGetValue(playerIdString, out var player)) // Update existing object
                 {
-                    item.Position = new UnityEngine.Vector3(0, 0, 0);
+                    player.Position = new UnityEngine.Vector3(0, 0, 0);
                 }
                 else // Create new object
                 {

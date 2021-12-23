@@ -17,14 +17,13 @@ namespace SharpRadar
         private readonly Memory _memory;
         private Bitmap _currentMap;
         private Bitmap _currentRender;
-        private volatile int _mapWidth; // Only used for testing
-        private volatile int _mapHeight; // Only used for testing
         private System.Timers.Timer _timer;
         private static Random _rng = new Random();
-        private readonly Game _game; // Testing class to store unit location data
         private float _zoom = 1.0f;
         private int _lastZoom = 0;
         private const int _maxZoom = 3500;
+        private Player _currentPlayer;
+        private bool _startup = false;
         public MainForm(Memory memory)
         {
             InitializeComponent();
@@ -32,57 +31,11 @@ namespace SharpRadar
             this.DoubleBuffered = true; // Prevent flickering
             this.Resize += this.MainForm_Resize;
             _currentMap = new Bitmap(Image.FromFile("Resources\\lighthouse.png")); // Load Map File
-            _mapWidth = _currentMap.Width;
-            _mapHeight = _currentMap.Height;
             _currentRender = (Bitmap)_currentMap.Clone();
-            _game = new Game();
-            _game.CurrentPlayer = new Player()
-            {
-                X = 150,
-                Y = 1000
-            };
             mapCanvas.Paint += this.mapCanvas_OnPaint;
             _timer = new System.Timers.Timer(33);
             _timer.Elapsed += this.tick;
             _timer.Start();
-            this.Load += this.MainForm_Load;
-        }
-
-        /// <summary>
-        /// Testing Only, move units around the map
-        /// </summary>
-        private async void MainForm_Load(object sender, EventArgs e)
-        {
-            await Task.Delay(1000);
-            await Task.Run(() =>
-            {
-                /* NOTE: Was receiving exceptions after ~30-45 sec when not using Volatile Reads
-                 Since the rendering is occuring on a timer callback, may be race conditions on several variables
-                 Should work fine with this testing code though, when implementing location adjustments in Memory.cs, be sure
-                to account for thread safety (use Interlocked?) */
-                while (true)
-                {
-                    Thread.Sleep(33);
-                    foreach (var scav in _game.Scavs)
-                    {
-                        int x = Volatile.Read(ref scav.X);
-                        int y = Volatile.Read(ref scav.Y);
-                        int xValue = _rng.Next(-2, 3);
-                        int yValue = _rng.Next(-2, 3);
-                        if (x + xValue >= 0 && x + xValue < _mapWidth) Interlocked.Add(ref scav.X, xValue);
-                        if (y + yValue >= 0 && y + yValue < _mapHeight) Interlocked.Add(ref scav.Y, yValue);
-                    }
-                    foreach (var pmc in _game.PMCs)
-                    {
-                        int x = Volatile.Read(ref pmc.X);
-                        int y = Volatile.Read(ref pmc.Y);
-                        int xValue = _rng.Next(-2, 3);
-                        int yValue = _rng.Next(-2, 3);
-                        if (x + xValue >= 0 && x + xValue < _mapWidth) Interlocked.Add(ref pmc.X, xValue);
-                        if (x + yValue >= 0 && y + yValue < _mapHeight) Interlocked.Add(ref pmc.Y, yValue);
-                    }
-                }
-            });
         }
 
         /// <summary>
@@ -109,7 +62,24 @@ namespace SharpRadar
         /// </summary>
         private void refresh() // Request GUI to render next frame
         {
-            mapCanvas.Invalidate(); // Clears canvas, causing it to be re-drawn
+            if (!_startup && _memory.InGame)
+            {
+                foreach (KeyValuePair<string,Player> player in _memory.Players)
+                {
+                    if (player.Value.IsPlayer) // Determine current player
+                    {
+                        _currentPlayer = player.Value;
+                        _startup = true;
+                        break;
+                    }
+                }
+            }
+            while (_memory.InGame)
+            {
+                mapCanvas.Invalidate(); // Clears canvas, causing it to be re-drawn
+                return;
+            }
+            _startup = false;
         }
 
         /// <summary>
@@ -145,7 +115,6 @@ namespace SharpRadar
             if (strokeLength < 5) strokeLength = 5; // Min value
             int strokeWidth = zoom / 300; // Lower constant = wider stroke
             if (strokeWidth < 4) strokeWidth = 4; // Min value
-            label_debug.Text = $"{zoom}, {strokeLength}, {strokeWidth}";
             using (var render = (Bitmap)_currentMap.Clone()) // Get a fresh map to draw on
             using (var grn = new Pen(Color.LimeGreen)
             {
@@ -160,34 +129,26 @@ namespace SharpRadar
                 Width = strokeWidth
             })
             {
+                var playerPos = VectorToPositions(_currentPlayer.Position);
                 // Get map frame bounds (Based on Zoom Level)
-                var bounds = new Rectangle(_game.CurrentPlayer.X - zoom / 2, _game.CurrentPlayer.Y - zoom / 2, zoom, zoom);
+                var bounds = new Rectangle(playerPos.X - zoom / 2, playerPos.Y - zoom / 2, zoom, zoom);
                 using (var gr = Graphics.FromImage(render)) // Get fresh frame
                 {
                     // Draw Player
-                    gr.DrawLine(grn, new Point(_game.CurrentPlayer.X - strokeLength, _game.CurrentPlayer.Y), new Point(_game.CurrentPlayer.X + strokeLength, _game.CurrentPlayer.Y));
-                    gr.DrawLine(grn, new Point(_game.CurrentPlayer.X, _game.CurrentPlayer.Y - strokeLength), new Point(_game.CurrentPlayer.X, _game.CurrentPlayer.Y + strokeLength));
+                    gr.DrawLine(grn, new Point(playerPos.X - strokeLength, playerPos.Y), new Point(playerPos.X + strokeLength, playerPos.Y));
+                    gr.DrawLine(grn, new Point(playerPos.X, playerPos.Y - strokeLength), new Point(playerPos.X, playerPos.Y + strokeLength));
                     // Draw Units
-                    foreach (var pmc in _game.PMCs) // Draw PMCs
+                    foreach (KeyValuePair<string, Player> unit in _memory.Players) // Draw PMCs
                     {
-                        if (pmc.X >= bounds.Left // Only draw if in bounds
-                            && pmc.Y >= bounds.Top
-                            && pmc.X <= bounds.Right
-                            && pmc.Y <= bounds.Bottom)
+                        // ToDo , add logic for scav/player scav/pmc/boss
+                        var unitPos = VectorToPositions(unit.Value.Position);
+                        if (unitPos.X >= bounds.Left // Only draw if in bounds
+                            && unitPos.Y >= bounds.Top
+                            && unitPos.X <= bounds.Right
+                            && unitPos.Y <= bounds.Bottom)
                         { // Draw Location Marker
-                            gr.DrawLine(red, new Point(pmc.X - strokeLength, pmc.Y), new Point(pmc.X + strokeLength, pmc.Y));
-                            gr.DrawLine(red, new Point(pmc.X, pmc.Y - strokeLength), new Point(pmc.X, pmc.Y + strokeLength));
-                        }
-                    }
-                    foreach (var scav in _game.Scavs) // Draw Scavs
-                    {
-                        if (scav.X >= bounds.Left // Only draw if in bounds
-                            && scav.Y >= bounds.Top
-                            && scav.X <= bounds.Right
-                            && scav.Y <= bounds.Bottom)
-                        { // Draw Location Marker
-                            gr.DrawLine(ylw, new Point(scav.X - strokeLength, scav.Y), new Point(scav.X + strokeLength, scav.Y));
-                            gr.DrawLine(ylw, new Point(scav.X, scav.Y - strokeLength), new Point(scav.X, scav.Y + strokeLength));
+                            gr.DrawLine(red, new Point(unitPos.X - strokeLength, unitPos.Y), new Point(unitPos.X + strokeLength, unitPos.Y));
+                            gr.DrawLine(red, new Point(unitPos.X, unitPos.Y - strokeLength), new Point(unitPos.X, unitPos.Y + strokeLength));
                         }
                     }
                     /// ToDo Handle Units Dying, draw a marker on death location
@@ -211,40 +172,11 @@ namespace SharpRadar
         }
 
         /// <summary>
-        /// Testing Methods
+        /// ToDo
         /// </summary>
-        private void button_up_Click(object sender, EventArgs e)
+        private MapPosition VectorToPositions(UnityEngine.Vector3 vector)
         {
-            _game.CurrentPlayer.Y-=10;
-        }
-
-        private void button_left_Click(object sender, EventArgs e)
-        {
-            _game.CurrentPlayer.X-=10;
-        }
-
-        private void button_down_Click(object sender, EventArgs e)
-        {
-            _game.CurrentPlayer.Y+=10;
-        }
-
-        private void button_right_Click(object sender, EventArgs e)
-        {
-            _game.CurrentPlayer.X+=10;
-        }
-
-        private void button_testAddUnits_Click(object sender, EventArgs e)
-        {
-            _game.PMCs.Add(new PMC() // Add one unit
-            {
-                X = _rng.Next(0, _mapWidth),
-                Y = _rng.Next(0, _mapHeight)
-            });
-            _game.Scavs.Add(new Scav() // Add one unit
-            {
-                X = _rng.Next(0, _mapWidth),
-                Y = _rng.Next(0, _mapHeight)
-            });
+            return new MapPosition();
         }
     }
 }
