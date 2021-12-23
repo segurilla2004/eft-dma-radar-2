@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Drawing;
+using System.Threading;
+using UnityEngine;
 
 namespace SharpRadar
 {
@@ -8,41 +10,49 @@ namespace SharpRadar
     /// <summary>
     /// GUI Testing Structures, may change
     /// </summary>
-    public class Game
-    {
-        public Player CurrentPlayer;
-        public ConcurrentBag<PMC> PMCs = new ConcurrentBag<PMC>();
-        public ConcurrentBag<Scav> Scavs = new ConcurrentBag<Scav>();
-    }
 
-    public class Unit
+    public class Player
     {
-        public int X;
-        public int Y;
-        public int Group;
-        public bool? IsAlive = true;
-        public Point Position
+        public volatile bool IsActive = true;
+        public volatile bool IsPlayer = false;
+        public volatile bool IsAlly = false;
+        public volatile bool IsScav = false;
+        public volatile bool IsScavBoss = false;
+        public volatile bool IsPlayerScav = false;
+        public volatile bool IsAlive = true;
+        private volatile string _groupID;
+        public string GroupID
         {
-            get
+            get { return _groupID; }
+        }
+        private Vector3 _pos = new Vector3();
+        public Vector3 Position
+        {
+            set
             {
-                return new Point(X, Y);
+                Interlocked.Exchange(ref _pos.x, value.x);
+                Interlocked.Exchange(ref _pos.y, value.y);
+                Interlocked.Exchange(ref _pos.z, value.z);
+            }
+            get
+                /* MSDN RE: Interlocked
+                 * The Read method is unnecessary on 64-bit systems, because 64-bit read operations are already atomic. 
+                 * On 32-bit systems, 64-bit read operations are not atomic unless performed using Read. 
+                 */
+            {
+                return new Vector3()
+                {
+                    x = _pos.x,
+                    y = _pos.y,
+                    z = _pos.z
+                };
             }
         }
-    }
-    public class Player : Unit
-    {
-        // ToDo
 
-    }
-
-    public class PMC : Unit
-    {
-    }
-
-    public class Scav : Unit
-    {
-        public bool IsPlayerScav;
-        public bool IsBoss;
+        public Player(string groupId)
+        {
+            _groupID = groupId;
+        }
     }
 
     /// <summary>

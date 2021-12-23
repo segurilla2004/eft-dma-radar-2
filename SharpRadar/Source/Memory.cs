@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -13,6 +14,7 @@ namespace SharpRadar
         private ulong _baseModule; // Stores UnityPlayer.DLL Module Base Entry
         private GameObjectManager _gom;
         private ulong _localGameWorld;
+        private ulong _rgtPlayers;
         private volatile bool _inGame = false;
         public bool InGame
         {
@@ -21,6 +23,7 @@ namespace SharpRadar
                 return _inGame;
             }
         }
+        public ConcurrentDictionary<string, Player> Players;
 
         public Memory()
         {
@@ -54,25 +57,14 @@ namespace SharpRadar
                 {
                     if (GetLGW()) // Try find raid
                     {
+                        this.Players = new ConcurrentDictionary<string, Player>();
                         _inGame = true;
-                        ulong rgtPlayers = AddressOf(_localGameWorld + 0x80);
+                        _rgtPlayers = AddressOf(_localGameWorld + 0x80);
                         while (Heartbeat()) // Main loop
                         {
                             try
                             {
-                                int playerCnt = ReadMemoryInt(rgtPlayers + 0x18);
-                                Console.WriteLine("Online Raid Player Count is: " + playerCnt);
-                                ulong listBase = AddressOf(rgtPlayers + 0x0010);
-                                for (uint i = 0; i < playerCnt; i++)
-                                {
-                                    ulong playerBase = AddressOf(listBase + 0x20 + (i * 0x8));
-                                    /// ToDo - Get Player Location Transform
-                                    var playerProfile = AddressOf(playerBase + 0x4b0);
-                                    var playerInfo = AddressOf(playerProfile + 0x28);
-                                    var playerNickname = AddressOf(playerInfo + 0x10);
-                                    var nicknameStr = ReadMemoryString(playerNickname, 64);
-                                    Console.WriteLine($"Player {i + 1}: {nicknameStr}"); // For testing purposes
-                                }
+                                GameLoop();
                                 Thread.Sleep(2200); // Tick
                             }
                             catch (Exception ex)
@@ -131,7 +123,7 @@ namespace SharpRadar
         {
             try
             {
-                var addr = AddressOf(_baseModule + (ulong)Offsets.Startup.GameObjectManager);
+                var addr = AddressOf(_baseModule + 0x17F1CE8);
                 _gom = ReadMemoryStruct<GameObjectManager>(addr);
                 Console.WriteLine($"Found Game Object Manager at 0x{addr.ToString("x")}");
                 return true;
@@ -191,6 +183,38 @@ namespace SharpRadar
             }
 
             return 0;
+        }
+
+        private void GameLoop()
+        {
+            int playerCnt = ReadMemoryInt(_rgtPlayers + 0x18);
+            Console.WriteLine("Online Raid Player Count is: " + playerCnt);
+            ulong listBase = AddressOf(_rgtPlayers + 0x0010);
+            for (uint i = 0; i < playerCnt; i++)
+            {
+                ulong playerBase = AddressOf(listBase + 0x20 + (i * 0x8));
+                /// ToDo - Get Player Location Transform
+                var playerProfile = AddressOf(playerBase + 0x4b0);
+                var playerId = AddressOf(playerProfile + 0x10);
+                var playerIdString = ReadMemoryString(playerId, 64); // Player's Personal ID
+                var playerInfo = AddressOf(playerProfile + 0x28);
+                var playerGroupId = AddressOf(playerInfo + 0x20);
+                var playerGroupIdStr = ReadMemoryString(playerGroupId, 64); // Player's Group Affiliation ID
+                var playerNickname = AddressOf(playerInfo + 0x10);
+                var nicknameStr = ReadMemoryString(playerNickname, 64);
+                Console.WriteLine($"Player {i + 1}: {nicknameStr}"); // For testing purposes
+                if (this.Players.TryGetValue(playerIdString, out var item)) // Update existing object
+                {
+                    item.Position = new UnityEngine.Vector3(0, 0, 0);
+                }
+                else // Create new object
+                {
+                    this.Players.TryAdd(playerIdString, new Player(playerGroupIdStr)
+                    {
+                        Position = new UnityEngine.Vector3(0, 0, 0)
+                    });
+                }
+            }
         }
 
         /// <summary>
