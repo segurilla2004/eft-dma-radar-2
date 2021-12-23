@@ -59,8 +59,7 @@ namespace SharpRadar
                     {
                         this.Players = new ConcurrentDictionary<string, Player>();
                         _inGame = true;
-                        _rgtPlayers = AddressOf(_localGameWorld + 0x80);
-                        while (Heartbeat()) // Main loop
+                        while (GetRegPlayers()) // Main game loop
                         {
                             try
                             {
@@ -69,10 +68,10 @@ namespace SharpRadar
                             }
                             catch (Exception ex)
                             {
-                                Console.WriteLine("Game ended? " + ex.ToString()); // for debug purposes
-                                break;
+                                Console.WriteLine(ex.ToString()); // for debug purposes
                             }
                         }
+                        Console.WriteLine("Game ended!");
                         _inGame = false;
                     }
                     else Thread.Sleep(5000);
@@ -154,6 +153,19 @@ namespace SharpRadar
             catch (Exception ex)
             {
                 Console.WriteLine($"ERROR getting Local Game World: {ex}");
+                return false;
+            }
+        }
+        private bool GetRegPlayers()
+        {
+            try
+            {
+                _rgtPlayers = AddressOf(_localGameWorld + 0x80);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ERROR getting Registered Players: {ex}");
                 return false;
             }
         }
