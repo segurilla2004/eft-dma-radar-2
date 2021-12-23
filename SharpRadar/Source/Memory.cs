@@ -221,10 +221,9 @@ namespace SharpRadar
                 UnityEngine.Vector3 playerPos = new UnityEngine.Vector3(); // ToDo parse vectors from transform
                 if (this.Players.TryGetValue(playerIdString, out var player)) // Update existing object
                 {
-                    if (player.IsActive) // Don't update dead player
+                    if (player.IsAlive) // Don't update already dead player
                     {
-                        player.Position = new UnityEngine.Vector3(0, 0, 0);
-                        player.IsActive = playerIsAlive;
+                        player.Position = playerPos;
                         player.IsAlive = playerIsAlive;
                     }
                 }
@@ -232,7 +231,7 @@ namespace SharpRadar
                 {
                     this.Players.TryAdd(playerIdString, new Player(playerGroupIdStr)
                     {
-                        Position = new UnityEngine.Vector3(0, 0, 0)
+                        Position = playerPos
                     });
                 }
             }

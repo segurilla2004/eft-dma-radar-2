@@ -12,7 +12,6 @@ namespace SharpRadar
 
     public class Player
     {
-        public volatile bool IsActive = true;
         public volatile bool IsPlayer = false;
         public volatile bool IsPMC = false;
         public volatile bool IsAlly = false;
