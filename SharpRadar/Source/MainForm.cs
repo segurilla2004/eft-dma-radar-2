@@ -22,7 +22,10 @@ namespace SharpRadar
         private float _zoom = 1.0f;
         private int _lastZoom = 0;
         private const int _maxZoom = 3500;
-        private Player _currentPlayer;
+        private Player _currentPlayer = new Player("0") // Default Starting Values
+        {
+            Position = new UnityEngine.Vector3(0, 0, 0)
+        };
         private bool _startup = false;
         public MainForm(Memory memory)
         {

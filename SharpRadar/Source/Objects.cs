@@ -2,7 +2,6 @@
 using System.Collections.Concurrent;
 using System.Drawing;
 using System.Threading;
-using UnityEngine;
 
 namespace SharpRadar
 {
@@ -25,8 +24,8 @@ namespace SharpRadar
         {
             get { return _groupID; }
         }
-        private Vector3 _pos = new Vector3();
-        public Vector3 Position
+        private UnityEngine.Vector3 _pos = new UnityEngine.Vector3();
+        public UnityEngine.Vector3 Position
         {
             set
             {
@@ -40,7 +39,7 @@ namespace SharpRadar
                  * On 32-bit systems, 64-bit read operations are not atomic unless performed using Read. 
                  */
             {
-                return new Vector3()
+                return new UnityEngine.Vector3()
                 {
                     x = _pos.x,
                     y = _pos.y,
