@@ -139,6 +139,10 @@ namespace SharpRadar
             {
                 Width = strokeWidth
             })
+            using (var blk = new Pen(Color.Black)
+            {
+                Width = strokeWidth
+            })
             {
                 var playerPos = VectorToPositions(_currentPlayer.Position);
                 // Get map frame bounds (Based on Zoom Level)
@@ -160,7 +164,12 @@ namespace SharpRadar
                             && unitPos.Y <= bounds.Bottom)
                         { // Draw Location Marker
                             Pen pen;
-                            if (unit.Value.IsAlly) pen = grn;
+                            if (unit.Value.IsAlive is false)
+                            {
+                                // Draw death marker
+                                continue;
+                            }
+                            else if (unit.Value.IsAlly) pen = grn;
                             else if (unit.Value.IsPMC) pen = red;
                             else if (unit.Value.IsPlayerScav) pen = wht;
                             else if (unit.Value.IsScavBoss) pen = vlt;

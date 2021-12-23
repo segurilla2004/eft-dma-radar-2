@@ -216,9 +216,17 @@ namespace SharpRadar
                 var playerNickname = AddressOf(playerInfo + 0x10);
                 var nicknameStr = ReadMemoryString(playerNickname, 64);
                 Debug.WriteLine($"Player {i + 1}: {nicknameStr}"); // For testing purposes
+
+                bool playerIsAlive = true; // ToDo get value if player is alive or not
+                UnityEngine.Vector3 playerPos = new UnityEngine.Vector3(); // ToDo parse vectors from transform
                 if (this.Players.TryGetValue(playerIdString, out var player)) // Update existing object
                 {
-                    player.Position = new UnityEngine.Vector3(0, 0, 0);
+                    if (player.IsActive) // Don't update dead player
+                    {
+                        player.Position = new UnityEngine.Vector3(0, 0, 0);
+                        player.IsActive = playerIsAlive;
+                        player.IsAlive = playerIsAlive;
+                    }
                 }
                 else // Create new object
                 {
