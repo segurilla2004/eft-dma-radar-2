@@ -14,6 +14,7 @@ namespace SharpRadar
     {
         public volatile bool IsActive = true;
         public volatile bool IsPlayer = false;
+        public volatile bool IsPMC = false;
         public volatile bool IsAlly = false;
         public volatile bool IsScav = false;
         public volatile bool IsScavBoss = false;

@@ -131,6 +131,14 @@ namespace SharpRadar
             {
                 Width = strokeWidth
             })
+            using (var vlt = new Pen(Color.Violet)
+            {
+                Width = strokeWidth
+            })
+            using (var wht = new Pen(Color.White)
+            {
+                Width = strokeWidth
+            })
             {
                 var playerPos = VectorToPositions(_currentPlayer.Position);
                 // Get map frame bounds (Based on Zoom Level)
@@ -143,6 +151,7 @@ namespace SharpRadar
                     // Draw Units
                     foreach (KeyValuePair<string, Player> unit in _memory.Players) // Draw PMCs
                     {
+                        if (unit.Value.IsPlayer) continue; // Already drawn current player, move on
                         // ToDo , add logic for scav/player scav/pmc/boss
                         var unitPos = VectorToPositions(unit.Value.Position);
                         if (unitPos.X >= bounds.Left // Only draw if in bounds
@@ -150,8 +159,15 @@ namespace SharpRadar
                             && unitPos.X <= bounds.Right
                             && unitPos.Y <= bounds.Bottom)
                         { // Draw Location Marker
-                            gr.DrawLine(red, new Point(unitPos.X - strokeLength, unitPos.Y), new Point(unitPos.X + strokeLength, unitPos.Y));
-                            gr.DrawLine(red, new Point(unitPos.X, unitPos.Y - strokeLength), new Point(unitPos.X, unitPos.Y + strokeLength));
+                            Pen pen;
+                            if (unit.Value.IsAlly) pen = grn;
+                            else if (unit.Value.IsPMC) pen = red;
+                            else if (unit.Value.IsPlayerScav) pen = wht;
+                            else if (unit.Value.IsScavBoss) pen = vlt;
+                            else if (unit.Value.IsScav) pen = ylw;
+                            else pen = ylw; // Default
+                            gr.DrawLine(pen, new Point(unitPos.X - strokeLength, unitPos.Y), new Point(unitPos.X + strokeLength, unitPos.Y));
+                            gr.DrawLine(pen, new Point(unitPos.X, unitPos.Y - strokeLength), new Point(unitPos.X, unitPos.Y + strokeLength));
                         }
                     }
                     /// ToDo Handle Units Dying, draw a marker on death location
