@@ -54,18 +54,20 @@ namespace SharpRadar
         /// </summary>
         private void LoadMaps()
         {
-            var maps = Directory.GetFiles("\\Maps", "*.png"); // Get all PNG Files
-            if (maps.Length == 0) throw new IOException("Unable to load map files at \\Maps");
+            var dir = new DirectoryInfo("\\Maps");
+            if (!dir.Exists) throw new IOException("Unable to locate Maps folder!");
+            var maps = dir.GetFiles("*.png"); // Get all PNG Files
+            if (maps.Length == 0) throw new IOException("Maps folder is empty!");
             foreach (var map in maps)
             {
-                var name = Path.GetFileNameWithoutExtension(map);
-                var config = name + ".json";
-                if (!File.Exists(config)) throw new IOException($"Map JSON Config missing for {map}");
+                var name = Path.GetFileNameWithoutExtension(map.Name); // map name ex. 'CUSTOMS' w/o extension
+                var config = new FileInfo(Path.Combine(dir.FullName, name + ".json")); // Full config path
+                if (!config.Exists) throw new IOException($"Map JSON Config missing for {map}");
                 _allMaps.Add(new Map
                 (
                     name.ToUpper(),
-                    new Bitmap(Image.FromFile(map)),
-                    MapConfig.LoadFromFile(config))
+                    new Bitmap(Image.FromFile(map.FullName)),
+                    MapConfig.LoadFromFile(config.FullName))
                 );
             }
             _currentMap = _allMaps[0];
