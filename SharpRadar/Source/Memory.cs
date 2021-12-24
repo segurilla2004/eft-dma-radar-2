@@ -249,7 +249,14 @@ namespace SharpRadar
         private ulong AddressOf(ulong ptr) => ReadMemoryUlong(ptr);
         private ulong ReadMemoryUlong(ulong addr)
         {
-            return BitConverter.ToUInt64(vmm.MemRead(_pid, addr, 8, 0), 0);
+            try
+            {
+                return BitConverter.ToUInt64(vmm.MemRead(_pid, addr, 8, 0), 0);
+            }
+            catch (Exception ex)
+            {
+                throw new DMAException($"ERROR reading memory at 0x{addr.ToString("X")}", ex);
+            }
         }
 
         private long ReadMemoryLong(ulong addr) // read 8 bytes (int64)

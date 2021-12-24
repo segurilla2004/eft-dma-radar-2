@@ -188,35 +188,36 @@ namespace SharpRadar
                 Width = strokeWidth
             })
             {
-                MapPosition playerPos;
+                MapPosition currentPlayerPos;
                 lock (_currentPlayer) // Obtain object lock
                 {
-                    playerPos = VectorToMapPos(_currentPlayer.Position);
+                    currentPlayerPos = VectorToMapPos(_currentPlayer.Position);
                     label_Pos.Text = $"X: {_currentPlayer.Position.x}\r\nY: {_currentPlayer.Position.y}\r\nZ: {_currentPlayer.Position.z}";
                 }
                 // Get map frame bounds (Based on Zoom Level, centered on Current Player)
-                var bounds = new Rectangle(playerPos.X - zoom / 2, playerPos.Y - zoom / 2, zoom, zoom);
+                var bounds = new Rectangle(currentPlayerPos.X - zoom / 2, currentPlayerPos.Y - zoom / 2, zoom, zoom);
                 using (var gr = Graphics.FromImage(render)) // Get fresh frame
                 {
                     // Draw Current Player
-                    gr.DrawLine(grn, new Point(playerPos.X - strokeLength, playerPos.Y), new Point(playerPos.X + strokeLength, playerPos.Y));
-                    gr.DrawLine(grn, new Point(playerPos.X, playerPos.Y - strokeLength), new Point(playerPos.X, playerPos.Y + strokeLength));
+                    gr.DrawLine(grn, new Point(currentPlayerPos.X - strokeLength, currentPlayerPos.Y), new Point(currentPlayerPos.X + strokeLength, currentPlayerPos.Y));
+                    gr.DrawLine(grn, new Point(currentPlayerPos.X, currentPlayerPos.Y - strokeLength), new Point(currentPlayerPos.X, currentPlayerPos.Y + strokeLength));
                     // Draw Other Players
                     foreach (KeyValuePair<string, Player> player in _memory.Players) // Draw PMCs
                     {
                         lock (player.Value) // Obtain object lock
                         {
                             if (player.Value.Type is PlayerType.CurrentPlayer) continue; // Already drawn current player, move on
-                            var unitPos = VectorToMapPos(player.Value.Position);
-                            if (unitPos.X >= bounds.Left // Only draw if in bounds
-                                && unitPos.Y >= bounds.Top
-                                && unitPos.X <= bounds.Right
-                                && unitPos.Y <= bounds.Bottom)
-                            { // Draw Location Marker
+                            var playerPos = VectorToMapPos(player.Value.Position);
+                            if (playerPos.X >= bounds.Left // Only draw if in bounds
+                                && playerPos.Y >= bounds.Top
+                                && playerPos.X <= bounds.Right
+                                && playerPos.Y <= bounds.Bottom)
+                            {
                                 Pen pen;
                                 if (player.Value.IsAlive is false)
-                                {
-                                    // Draw death marker (black 'X')
+                                { // Draw 'X'
+                                    gr.DrawLine(blk, new Point(playerPos.X, playerPos.Y - strokeLength / 2), new Point(playerPos.X + strokeLength, playerPos.Y + strokeLength / 2));
+                                    gr.DrawLine(blk, new Point(playerPos.X, playerPos.Y + strokeLength / 2), new Point(playerPos.X + strokeLength, playerPos.Y - strokeLength / 2));
                                     continue;
                                 }
                                 else if (player.Value.Type is PlayerType.Teammate) pen = grn;
@@ -225,8 +226,9 @@ namespace SharpRadar
                                 else if (player.Value.Type is PlayerType.AIBoss) pen = vlt;
                                 else if (player.Value.Type is PlayerType.AIScav) pen = ylw;
                                 else pen = red; // Default
-                                gr.DrawLine(pen, new Point(unitPos.X - strokeLength, unitPos.Y), new Point(unitPos.X + strokeLength, unitPos.Y));
-                                gr.DrawLine(pen, new Point(unitPos.X, unitPos.Y - strokeLength), new Point(unitPos.X, unitPos.Y + strokeLength));
+                                // Draw '+'
+                                gr.DrawLine(pen, new Point(playerPos.X - strokeLength, playerPos.Y), new Point(playerPos.X + strokeLength, playerPos.Y));
+                                gr.DrawLine(pen, new Point(playerPos.X, playerPos.Y - strokeLength), new Point(playerPos.X, playerPos.Y + strokeLength));
                             }
                         }
                     }
