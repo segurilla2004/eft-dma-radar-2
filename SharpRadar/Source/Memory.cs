@@ -214,11 +214,12 @@ namespace SharpRadar
                 var playerGroupId = AddressOf(playerInfo + 0x20);
                 var playerGroupIdStr = ReadMemoryString(playerGroupId, 64); // Player's Group Affiliation ID
                 var playerNickname = AddressOf(playerInfo + 0x10);
-                var nicknameStr = ReadMemoryString(playerNickname, 64);
+                var nicknameStr = ReadMemoryUnityString(playerNickname); // ToDo Testing
                 Debug.WriteLine($"Player {i + 1}: {nicknameStr}"); // For testing purposes
 
-                bool playerIsAlive = true; // ToDo get value if player is alive or not
-                UnityEngine.Vector3 playerPos = new UnityEngine.Vector3(); // ToDo parse vectors from transform
+                var playerIsAlive = true; // ToDo get value if player is alive or not
+                var playerPos = new UnityEngine.Vector3(0,0,0); // ToDo parse vectors from transform
+                var playerType = PlayerType.Default; // ToDo parse player type and assign proper value
                 if (this.Players.TryGetValue(playerIdString, out var player)) // Update existing object
                 {
                     lock (player) // obtain lock
@@ -235,7 +236,7 @@ namespace SharpRadar
                     this.Players.TryAdd(playerIdString, new Player(
                         nicknameStr, // Player's name
                         playerGroupIdStr, // Player's Group ID
-                        PlayerType.PMC) // Player's Type
+                        playerType) // Player's Type
                     {
                         Position = playerPos
                     });
@@ -356,6 +357,23 @@ namespace SharpRadar
             {
                 var buffer = vmm.MemRead(_pid, addr, size, 0);
                 return Encoding.Default.GetString(buffer);
+            }
+            catch (Exception ex)
+            {
+                throw new DMAException($"ERROR reading memory at 0x{addr.ToString("X")}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Read UnityEngineString structure , ToDo - not sure if working
+        /// </summary>
+        private string ReadMemoryUnityString(ulong addr)
+        {
+            try
+            {
+                var length = (uint)ReadMemoryInt(addr + 0x10); // 0x14
+                return Encoding.Default.GetString(
+                    vmm.MemRead(_pid, addr + 0x14, length * 2, 0));
             }
             catch (Exception ex)
             {
