@@ -50,6 +50,7 @@ namespace SharpRadar
                     }
                     else
                     {
+                        Debug.WriteLine("Trying again in 15 seconds...");
                         Thread.Sleep(15000);
                     }
                 }
@@ -214,8 +215,8 @@ namespace SharpRadar
                 var playerGroupId = AddressOf(playerInfo + 0x20);
                 var playerGroupIdStr = ReadMemoryString(playerGroupId, 64); // Player's Group Affiliation ID
                 var playerNickname = AddressOf(playerInfo + 0x10);
-                var nicknameStr = ReadMemoryUnityString(playerNickname); // ToDo Testing
-                Console.WriteLine($"Player {i + 1}: {nicknameStr}"); // For testing purposes
+                var nicknameStr = ReadMemoryUnityString(playerNickname); // Now working!
+                Debug.WriteLine($"Player {i + 1}: {nicknameStr}"); // For testing purposes
 
                 var playerIsAlive = true; // ToDo get value if player is alive or not
                 var playerPos = new UnityEngine.Vector3(0,0,0); // ToDo parse vectors from transform
@@ -365,7 +366,7 @@ namespace SharpRadar
         }
 
         /// <summary>
-        /// Read UnityEngineString structure , ToDo - not sure if working
+        /// Read UnityEngineString structure
         /// </summary>
         private string ReadMemoryUnityString(ulong addr)
         {

@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Threading;
@@ -9,6 +10,18 @@ namespace SharpRadar
 {
 
     // GUI Testing Structures, may change
+
+    public class DebugListener : TraceListener // Debug Listener
+    {
+        public override void Write(string message)
+        {
+            Console.Write(message);
+        }
+        public override void WriteLine(string message)
+        {
+            Console.WriteLine(message);
+        }
+    }
 
     /// <summary>
     /// Class containing Game Player Data. Use lock() when accessing instances of this class.
@@ -119,7 +132,5 @@ namespace SharpRadar
         public ulong nextObjectLink; //0x0008
         public ulong obj; //0x0010
 	};
-
-    // ToDo UnityEngineString
 
 }

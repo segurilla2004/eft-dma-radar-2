@@ -126,9 +126,9 @@ namespace SharpRadar
         /// </summary>
         private void mapCanvas_OnPaint(object sender, PaintEventArgs e)
         {
-            lock (_renderLock)
+            if (IsInRaid())
             {
-                if (IsInRaid())
+                lock (_renderLock)
                 {
                     var render = GetRender(); // Construct next frame
                     mapCanvas.Image = render; // Render next frame
