@@ -8,69 +8,70 @@ using System.Threading;
 namespace SharpRadar
 {
 
-    /// <summary>
-    /// GUI Testing Structures, may change
-    /// </summary>
+    // GUI Testing Structures, may change
 
+    /// <summary>
+    /// Class containing Game Player Data. Use lock() when accessing instances of this class.
+    /// </summary>
     public class Player
     {
-        public readonly object SyncRoot = new object();
-        public bool IsPlayer = false;
-        public bool IsPMC = false;
-        public bool IsAlly = false;
-        public bool IsScav = false;
-        public bool IsScavBoss = false;
-        public bool IsPlayerScav = false;
-        public bool IsAlive = true;
+        public readonly string Name;
+        public readonly PlayerType Type;
         public readonly string GroupID;
-        private UnityEngine.Vector3 _pos = new UnityEngine.Vector3();
-        public UnityEngine.Vector3 Position
-        {
-            set
-            {
-                Interlocked.Exchange(ref _pos.x, value.x);
-                Interlocked.Exchange(ref _pos.y, value.y);
-                Interlocked.Exchange(ref _pos.z, value.z);
-            }
-            get
-                /* MSDN RE: Interlocked
-                 * The Read method is unnecessary on 64-bit systems, because 64-bit read operations are already atomic. 
-                 * On 32-bit systems, 64-bit read operations are not atomic unless performed using Read. 
-                 */
-            {
-                return new UnityEngine.Vector3()
-                {
-                    x = _pos.x,
-                    y = _pos.y,
-                    z = _pos.z
-                };
-            }
-        }
+        public bool IsAlive = true;
+        public UnityEngine.Vector3 Position = new UnityEngine.Vector3(0, 0, 0);
 
-        public Player(string groupId)
+        public Player(string name, string groupId, PlayerType type)
         {
+            Name = name;
             GroupID = groupId;
+            Type = type;
         }
     }
 
-    public struct MapPosition // Integer map coordinates for GUI
+    /// <summary>
+    /// Defines Player Unit Type (Player,PMC,Scav,etc.)
+    /// </summary>
+    public enum PlayerType
+    {
+        CurrentPlayer,
+        Teammate,
+        PMC,
+        AIScav,
+        AIBoss,
+        PlayerScav
+    }
+
+    /// <summary>
+    /// Defines map position for the UI Map.
+    /// </summary>
+    public struct MapPosition
     {
         public int X;
         public int Y;
-        public int Z;
+        public int Height; // Z
     }
+
+    /// <summary>
+    /// Defines a .PNG Map File and corresponding .JSON config file from \\Maps folder.
+    /// </summary>
     public class Map
     {
+        public readonly string Name;
         public readonly Bitmap MapFile;
         public readonly MapConfig ConfigFile;
 
-        public Map(Bitmap map, MapConfig config)
+        public Map(string name, Bitmap map, MapConfig config)
         {
+            Name = name;
             MapFile = map;
             ConfigFile = config;
         }
     }
 
+    /// <summary>
+    /// Defines a .JSON Map Config File
+    /// </summary>
     public class MapConfig
     {
         [JsonProperty("x")]
@@ -93,9 +94,8 @@ namespace SharpRadar
         }
     }
 
-    /// <summary>
-    /// EFT/Unity Structures (WIP)
-    /// </summary>
+    // EFT/Unity Structures (WIP)
+
     public struct GameObjectManager
     {
         public ulong LastTaggedNode; // 0x0
@@ -118,5 +118,7 @@ namespace SharpRadar
         public ulong nextObjectLink; //0x0008
         public ulong obj; //0x0010
 	};
+
+    // ToDo UnityEngineString
 
 }

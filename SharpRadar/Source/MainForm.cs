@@ -15,53 +15,72 @@ namespace SharpRadar
 {
     public partial class MainForm : Form
     {
-        private readonly Memory _memory;
-        private List<Map> _allMaps;
+        private readonly Memory _memory; // Reference to memory module
+        private readonly object _renderLock = new object();
+        private readonly List<Map> _allMaps; // Contains all maps from \\Maps folder
         private int _mapIndex = 0;
-        private Map _currentMap;
-        private Bitmap _currentRender;
-        private object _renderLock = new object();
+        private Map _currentMap; // Current Selected Map
+        private Bitmap _currentRender; // Currently rendered frame
         private float _zoom = 1.0f;
         private int _lastZoom = 0;
         private const int _maxZoom = 3500;
-        private Player _currentPlayer = new Player("0") // Default Starting Values
+        private Player _currentPlayer = new Player( // Keep track of current player (for Map centering)
+            "player",
+            "0",
+            PlayerType.CurrentPlayer) // Default Starting Values
         {
             Position = new UnityEngine.Vector3(0, 0, 0)
         };
-        private bool _startup = false;
+        private bool _startup = false; // Game startup flag
+
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
         public MainForm(Memory memory)
         {
             InitializeComponent();
             _memory = memory;
+            _allMaps = new List<Map>();
+            LoadMaps();
+            this.DoubleBuffered = true; // Prevent flickering
+            this.mapCanvas.Paint += mapCanvas_OnPaint;
+            this.Resize += MainForm_Resize;
+            this.Shown += MainForm_Shown;
+        }
+
+        /// <summary>
+        /// Load map files (.PNG) and Configs (.JSON) from \\Maps folder.
+        /// </summary>
+        private void LoadMaps()
+        {
             var maps = Directory.GetFiles("\\Maps", "*.png"); // Get all PNG Files
             if (maps.Length == 0) throw new IOException("Unable to load map files at \\Maps");
-            _allMaps = new List<Map>();
             foreach (var map in maps)
             {
-                var config = Path.GetFileNameWithoutExtension(map) + ".json";
+                var name = Path.GetFileNameWithoutExtension(map);
+                var config = name + ".json";
                 if (!File.Exists(config)) throw new IOException($"Map JSON Config missing for {map}");
                 _allMaps.Add(new Map
                 (
+                    name.ToUpper(),
                     new Bitmap(Image.FromFile(map)),
                     MapConfig.LoadFromFile(config))
                 );
             }
             _currentMap = _allMaps[0];
-            this.DoubleBuffered = true; // Prevent flickering
-            this.Resize += this.MainForm_Resize;
+            label_Map.Text = _currentMap.Name;
             _currentRender = (Bitmap)_currentMap.MapFile.Clone();
-            mapCanvas.Paint += this.mapCanvas_OnPaint;
-            this.Shown += MainForm_Shown;
         }
 
+        /// <summary>
+        /// Main UI Loop.
+        /// </summary>
         private async void MainForm_Shown(object sender, EventArgs e)
         {
             while (true)
             {
-                lock (_renderLock)
-                {
-                    refresh();
-                }
+                refresh();
                 await Task.Delay(33); // Render timer (~30 fps?)
             }
         }
@@ -75,7 +94,6 @@ namespace SharpRadar
             {
                 mapCanvas.Size = new Size(this.Height, this.Height); // Keep square aspect ratio
                 mapCanvas.Location = new Point(0, 0); // Keep in top left corner
-                refresh();
             }
         }
 
@@ -88,9 +106,9 @@ namespace SharpRadar
             {
                 foreach (KeyValuePair<string,Player> player in _memory.Players)
                 {
-                    lock (player.Value.SyncRoot) // Obtain object lock
+                    lock (player.Value) // Obtain object lock
                     {
-                        if (player.Value.IsPlayer) // Determine current player
+                        if (player.Value.Type is PlayerType.CurrentPlayer) // Determine current player
                         {
                             _currentPlayer = player.Value;
                             _startup = true;
@@ -121,12 +139,15 @@ namespace SharpRadar
         /// </summary>
         private void mapCanvas_OnPaint(object sender, PaintEventArgs e)
         {
-            var render = GetRender(); // Construct next frame
-            mapCanvas.Image = render; // Render next frame
-
-            // Cleanup Resources
-            _currentRender.Dispose(); // Dispose previous frame
-            _currentRender = render; // Store reference of current frame
+            lock (_renderLock)
+            {
+                var render = GetRender(); // Construct next frame
+                mapCanvas.Image = render; // Render next frame
+                
+                // Cleanup Resources
+                _currentRender.Dispose(); // Dispose previous frame
+                _currentRender = render; // Store reference of current frame
+            }
         }
 
         /// <summary>
@@ -166,49 +187,48 @@ namespace SharpRadar
             })
             {
                 MapPosition playerPos;
-                lock (_currentPlayer.SyncRoot) // Obtain object lock
+                lock (_currentPlayer) // Obtain object lock
                 {
-                    playerPos = VectorToPositions(_currentPlayer.Position);
+                    playerPos = VectorToMapPos(_currentPlayer.Position);
+                    label_Pos.Text = $"X: {_currentPlayer.Position.x}\r\nY: {_currentPlayer.Position.y}\r\nZ: {_currentPlayer.Position.z}";
                 }
-                // Get map frame bounds (Based on Zoom Level)
+                // Get map frame bounds (Based on Zoom Level, centered on Current Player)
                 var bounds = new Rectangle(playerPos.X - zoom / 2, playerPos.Y - zoom / 2, zoom, zoom);
                 using (var gr = Graphics.FromImage(render)) // Get fresh frame
                 {
-                    // Draw Player
+                    // Draw Current Player
                     gr.DrawLine(grn, new Point(playerPos.X - strokeLength, playerPos.Y), new Point(playerPos.X + strokeLength, playerPos.Y));
                     gr.DrawLine(grn, new Point(playerPos.X, playerPos.Y - strokeLength), new Point(playerPos.X, playerPos.Y + strokeLength));
-                    // Draw Units
-                    foreach (KeyValuePair<string, Player> unit in _memory.Players) // Draw PMCs
+                    // Draw Other Players
+                    foreach (KeyValuePair<string, Player> player in _memory.Players) // Draw PMCs
                     {
-                        lock (unit.Value.SyncRoot) // Obtain object lock
+                        lock (player.Value) // Obtain object lock
                         {
-                            if (unit.Value.IsPlayer) continue; // Already drawn current player, move on
-                                                               // ToDo , add logic for scav/player scav/pmc/boss
-                            var unitPos = VectorToPositions(unit.Value.Position);
+                            if (player.Value.Type is PlayerType.CurrentPlayer) continue; // Already drawn current player, move on
+                            var unitPos = VectorToMapPos(player.Value.Position);
                             if (unitPos.X >= bounds.Left // Only draw if in bounds
                                 && unitPos.Y >= bounds.Top
                                 && unitPos.X <= bounds.Right
                                 && unitPos.Y <= bounds.Bottom)
                             { // Draw Location Marker
                                 Pen pen;
-                                if (unit.Value.IsAlive is false)
+                                if (player.Value.IsAlive is false)
                                 {
-                                    // Draw death marker
+                                    // Draw death marker (black 'X')
                                     continue;
                                 }
-                                else if (unit.Value.IsAlly) pen = grn;
-                                else if (unit.Value.IsPMC) pen = red;
-                                else if (unit.Value.IsPlayerScav) pen = wht;
-                                else if (unit.Value.IsScavBoss) pen = vlt;
-                                else if (unit.Value.IsScav) pen = ylw;
-                                else pen = ylw; // Default
+                                else if (player.Value.Type is PlayerType.Teammate) pen = grn;
+                                else if (player.Value.Type is PlayerType.PMC) pen = red;
+                                else if (player.Value.Type is PlayerType.PlayerScav) pen = wht;
+                                else if (player.Value.Type is PlayerType.AIBoss) pen = vlt;
+                                else if (player.Value.Type is PlayerType.AIScav) pen = ylw;
+                                else pen = red; // Default
                                 gr.DrawLine(pen, new Point(unitPos.X - strokeLength, unitPos.Y), new Point(unitPos.X + strokeLength, unitPos.Y));
                                 gr.DrawLine(pen, new Point(unitPos.X, unitPos.Y - strokeLength), new Point(unitPos.X, unitPos.Y + strokeLength));
                             }
                         }
                     }
-                    /// ToDo Handle Units Dying, draw a marker on death location
-                    /// Handle Loot/Items
+                    /// ToDo - Handle Loot/Items
                 }
                 return CropImage(render, bounds); // Return the portion of the map to be rendered based on Zoom Level
             }
@@ -228,22 +248,25 @@ namespace SharpRadar
         }
 
         /// <summary>
-        /// ToDo
+        /// ToDo - Convert game positional values to UI Map Coordinates.
         /// </summary>
-        private MapPosition VectorToPositions(UnityEngine.Vector3 vector)
+        private MapPosition VectorToMapPos(UnityEngine.Vector3 vector)
         {
             return new MapPosition();
         }
 
+        /// <summary>
+        /// Toggle current map selection.
+        /// </summary>
         private void button_Map_Click(object sender, EventArgs e)
         {
-            int length = _allMaps.Count;
-            if (_mapIndex == length - 1) _mapIndex = 0; // Start over when end of maps reached
+            if (_mapIndex == _allMaps.Count - 1) _mapIndex = 0; // Start over when end of maps reached
             else _mapIndex++; // Move onto next map
             lock (_renderLock) // Don't switch map mid-render
             {
                 _currentMap = _allMaps[_mapIndex]; // Swap map
             }
+            label_Map.Text = _currentMap.Name;
         }
     }
 }

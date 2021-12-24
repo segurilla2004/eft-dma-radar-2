@@ -28,24 +28,16 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.label1 = new System.Windows.Forms.Label();
             this.mapCanvas = new System.Windows.Forms.PictureBox();
             this.trackBar_Zoom = new System.Windows.Forms.TrackBar();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.button_Map = new System.Windows.Forms.Button();
+            this.label_Map = new System.Windows.Forms.Label();
+            this.label_Pos = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.mapCanvas)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar_Zoom)).BeginInit();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
-            // 
-            // label1
-            // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(12, 659);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(35, 13);
-            this.label1.TabIndex = 0;
-            this.label1.Text = "label1";
             // 
             // mapCanvas
             // 
@@ -59,7 +51,7 @@
             // 
             // trackBar_Zoom
             // 
-            this.trackBar_Zoom.Location = new System.Drawing.Point(36, 201);
+            this.trackBar_Zoom.Location = new System.Drawing.Point(169, 19);
             this.trackBar_Zoom.Maximum = 99;
             this.trackBar_Zoom.Name = "trackBar_Zoom";
             this.trackBar_Zoom.Orientation = System.Windows.Forms.Orientation.Vertical;
@@ -69,6 +61,8 @@
             // 
             // groupBox1
             // 
+            this.groupBox1.Controls.Add(this.label_Pos);
+            this.groupBox1.Controls.Add(this.label_Map);
             this.groupBox1.Controls.Add(this.button_Map);
             this.groupBox1.Controls.Add(this.trackBar_Zoom);
             this.groupBox1.Dock = System.Windows.Forms.DockStyle.Right;
@@ -81,13 +75,30 @@
             // 
             // button_Map
             // 
-            this.button_Map.Location = new System.Drawing.Point(51, 55);
+            this.button_Map.Location = new System.Drawing.Point(38, 29);
             this.button_Map.Name = "button_Map";
             this.button_Map.Size = new System.Drawing.Size(75, 23);
             this.button_Map.TabIndex = 7;
             this.button_Map.Text = "Map";
             this.button_Map.UseVisualStyleBackColor = true;
             this.button_Map.Click += new System.EventHandler(this.button_Map_Click);
+            // 
+            // label_Map
+            // 
+            this.label_Map.AutoSize = true;
+            this.label_Map.Location = new System.Drawing.Point(35, 55);
+            this.label_Map.Name = "label_Map";
+            this.label_Map.Size = new System.Drawing.Size(79, 13);
+            this.label_Map.TabIndex = 8;
+            this.label_Map.Text = "DEFAULTMAP";
+            // 
+            // label_Pos
+            // 
+            this.label_Pos.AutoSize = true;
+            this.label_Pos.Location = new System.Drawing.Point(35, 100);
+            this.label_Pos.Name = "label_Pos";
+            this.label_Pos.Size = new System.Drawing.Size(0, 13);
+            this.label_Pos.TabIndex = 9;
             // 
             // MainForm
             // 
@@ -96,7 +107,6 @@
             this.ClientSize = new System.Drawing.Size(1145, 925);
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.mapCanvas);
-            this.Controls.Add(this.label1);
             this.Name = "MainForm";
             this.Text = "SharpRadar";
             ((System.ComponentModel.ISupportInitialize)(this.mapCanvas)).EndInit();
@@ -104,17 +114,16 @@
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             this.ResumeLayout(false);
-            this.PerformLayout();
 
         }
 
         #endregion
-
-        private System.Windows.Forms.Label label1;
         private System.Windows.Forms.PictureBox mapCanvas;
         private System.Windows.Forms.TrackBar trackBar_Zoom;
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.Button button_Map;
+        private System.Windows.Forms.Label label_Pos;
+        private System.Windows.Forms.Label label_Map;
     }
 }
 
