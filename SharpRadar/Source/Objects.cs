@@ -14,18 +14,15 @@ namespace SharpRadar
 
     public class Player
     {
-        public volatile bool IsPlayer = false;
-        public volatile bool IsPMC = false;
-        public volatile bool IsAlly = false;
-        public volatile bool IsScav = false;
-        public volatile bool IsScavBoss = false;
-        public volatile bool IsPlayerScav = false;
-        public volatile bool IsAlive = true;
-        private volatile string _groupID;
-        public string GroupID
-        {
-            get { return _groupID; }
-        }
+        public readonly object SyncRoot = new object();
+        public bool IsPlayer = false;
+        public bool IsPMC = false;
+        public bool IsAlly = false;
+        public bool IsScav = false;
+        public bool IsScavBoss = false;
+        public bool IsPlayerScav = false;
+        public bool IsAlive = true;
+        public readonly string GroupID;
         private UnityEngine.Vector3 _pos = new UnityEngine.Vector3();
         public UnityEngine.Vector3 Position
         {
@@ -52,7 +49,7 @@ namespace SharpRadar
 
         public Player(string groupId)
         {
-            _groupID = groupId;
+            GroupID = groupId;
         }
     }
 
@@ -62,46 +59,6 @@ namespace SharpRadar
         public int Y;
         public int Z;
     }
-
-    /// <summary>
-    /// EFT/Unity Structures (WIP)
-    /// </summary>
-    public struct GameObjectManager
-    {
-        public ulong LastTaggedNode; // 0x0
-
-        public ulong TaggedNodes; // 0x8
-
-        public ulong LastMainCameraTaggedNode; // 0x10
-
-        public ulong MainCameraTaggedNodes; // 0x18
-
-        public ulong LastActiveNode; // 0x20
-
-        public ulong ActiveNodes; // 0x28
-
-    }
-
-    public struct BaseObject
-    {
-        public ulong previousObjectLink; //0x0000
-        public ulong nextObjectLink; //0x0008
-        public ulong obj; //0x0010
-	};
-
-    public struct ListInternal // Not sure if this is correct
-    {
-		public unsafe fixed byte pad_0x0000[0x20]; //0x0000
-        public ulong firstEntry; //0x0020 
-    }; //Size=0x0028
-
-    public struct List // Not sure if this is correct
-    {
-		public unsafe fixed byte pad_0x0000[0x10]; //0x0000
-        public ulong listBase; //0x0010    to ListInternal
-        public int itemCount; //0x0018 
-    }; //Size=0x001C
-
     public class Map
     {
         public readonly Bitmap MapFile;
@@ -135,5 +92,31 @@ namespace SharpRadar
             }
         }
     }
+
+    /// <summary>
+    /// EFT/Unity Structures (WIP)
+    /// </summary>
+    public struct GameObjectManager
+    {
+        public ulong LastTaggedNode; // 0x0
+
+        public ulong TaggedNodes; // 0x8
+
+        public ulong LastMainCameraTaggedNode; // 0x10
+
+        public ulong MainCameraTaggedNodes; // 0x18
+
+        public ulong LastActiveNode; // 0x20
+
+        public ulong ActiveNodes; // 0x28
+
+    }
+
+    public struct BaseObject
+    {
+        public ulong previousObjectLink; //0x0000
+        public ulong nextObjectLink; //0x0008
+        public ulong obj; //0x0010
+	};
 
 }

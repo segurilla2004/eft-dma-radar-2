@@ -88,11 +88,14 @@ namespace SharpRadar
             {
                 foreach (KeyValuePair<string,Player> player in _memory.Players)
                 {
-                    if (player.Value.IsPlayer) // Determine current player
+                    lock (player.Value.SyncRoot) // Obtain object lock
                     {
-                        _currentPlayer = player.Value;
-                        _startup = true;
-                        break;
+                        if (player.Value.IsPlayer) // Determine current player
+                        {
+                            _currentPlayer = player.Value;
+                            _startup = true;
+                            break;
+                        }
                     }
                 }
             }
@@ -162,7 +165,11 @@ namespace SharpRadar
                 Width = strokeWidth
             })
             {
-                var playerPos = VectorToPositions(_currentPlayer.Position);
+                MapPosition playerPos;
+                lock (_currentPlayer.SyncRoot) // Obtain object lock
+                {
+                    playerPos = VectorToPositions(_currentPlayer.Position);
+                }
                 // Get map frame bounds (Based on Zoom Level)
                 var bounds = new Rectangle(playerPos.X - zoom / 2, playerPos.Y - zoom / 2, zoom, zoom);
                 using (var gr = Graphics.FromImage(render)) // Get fresh frame
@@ -173,28 +180,31 @@ namespace SharpRadar
                     // Draw Units
                     foreach (KeyValuePair<string, Player> unit in _memory.Players) // Draw PMCs
                     {
-                        if (unit.Value.IsPlayer) continue; // Already drawn current player, move on
-                        // ToDo , add logic for scav/player scav/pmc/boss
-                        var unitPos = VectorToPositions(unit.Value.Position);
-                        if (unitPos.X >= bounds.Left // Only draw if in bounds
-                            && unitPos.Y >= bounds.Top
-                            && unitPos.X <= bounds.Right
-                            && unitPos.Y <= bounds.Bottom)
-                        { // Draw Location Marker
-                            Pen pen;
-                            if (unit.Value.IsAlive is false)
-                            {
-                                // Draw death marker
-                                continue;
+                        lock (unit.Value.SyncRoot) // Obtain object lock
+                        {
+                            if (unit.Value.IsPlayer) continue; // Already drawn current player, move on
+                                                               // ToDo , add logic for scav/player scav/pmc/boss
+                            var unitPos = VectorToPositions(unit.Value.Position);
+                            if (unitPos.X >= bounds.Left // Only draw if in bounds
+                                && unitPos.Y >= bounds.Top
+                                && unitPos.X <= bounds.Right
+                                && unitPos.Y <= bounds.Bottom)
+                            { // Draw Location Marker
+                                Pen pen;
+                                if (unit.Value.IsAlive is false)
+                                {
+                                    // Draw death marker
+                                    continue;
+                                }
+                                else if (unit.Value.IsAlly) pen = grn;
+                                else if (unit.Value.IsPMC) pen = red;
+                                else if (unit.Value.IsPlayerScav) pen = wht;
+                                else if (unit.Value.IsScavBoss) pen = vlt;
+                                else if (unit.Value.IsScav) pen = ylw;
+                                else pen = ylw; // Default
+                                gr.DrawLine(pen, new Point(unitPos.X - strokeLength, unitPos.Y), new Point(unitPos.X + strokeLength, unitPos.Y));
+                                gr.DrawLine(pen, new Point(unitPos.X, unitPos.Y - strokeLength), new Point(unitPos.X, unitPos.Y + strokeLength));
                             }
-                            else if (unit.Value.IsAlly) pen = grn;
-                            else if (unit.Value.IsPMC) pen = red;
-                            else if (unit.Value.IsPlayerScav) pen = wht;
-                            else if (unit.Value.IsScavBoss) pen = vlt;
-                            else if (unit.Value.IsScav) pen = ylw;
-                            else pen = ylw; // Default
-                            gr.DrawLine(pen, new Point(unitPos.X - strokeLength, unitPos.Y), new Point(unitPos.X + strokeLength, unitPos.Y));
-                            gr.DrawLine(pen, new Point(unitPos.X, unitPos.Y - strokeLength), new Point(unitPos.X, unitPos.Y + strokeLength));
                         }
                     }
                     /// ToDo Handle Units Dying, draw a marker on death location
