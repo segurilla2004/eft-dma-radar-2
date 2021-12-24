@@ -143,7 +143,7 @@ namespace SharpRadar
                     AddressOf(_gom.ActiveNodes), 
                     AddressOf(_gom.LastActiveNode), 
                     "GameWorld");
-                if (gameWorld == 0) throw new DMAException("Unable to find GameWorld, not in raid.");
+                if (gameWorld == 0) throw new DMAException("Unable to find GameWorld Object, likely not in raid.");
                 Debug.WriteLine($"Found Game World at 0x{gameWorld.ToString("x")}");
                 _localGameWorld = AddressOf(gameWorld + 0x30);
                 _localGameWorld = AddressOf(_localGameWorld + 0x18);
@@ -215,7 +215,7 @@ namespace SharpRadar
                 var playerGroupIdStr = ReadMemoryString(playerGroupId, 64); // Player's Group Affiliation ID
                 var playerNickname = AddressOf(playerInfo + 0x10);
                 var nicknameStr = ReadMemoryUnityString(playerNickname); // ToDo Testing
-                Debug.WriteLine($"Player {i + 1}: {nicknameStr}"); // For testing purposes
+                Console.WriteLine($"Player {i + 1}: {nicknameStr}"); // For testing purposes
 
                 var playerIsAlive = true; // ToDo get value if player is alive or not
                 var playerPos = new UnityEngine.Vector3(0,0,0); // ToDo parse vectors from transform
@@ -349,14 +349,14 @@ namespace SharpRadar
             }
         }
         /// <summary>
-        /// ToDo - Not sure if this implementation is correct
+        /// Read 'n' bytes at specified address and convert directly to a string.
         /// </summary>
         private string ReadMemoryString(ulong addr, uint size) // read n bytes (string)
         {
             try
             {
-                var buffer = vmm.MemRead(_pid, addr, size, 0);
-                return Encoding.Default.GetString(buffer);
+                return Encoding.Default.GetString(
+                    vmm.MemRead(_pid, addr, size, 0));
             }
             catch (Exception ex)
             {
@@ -371,8 +371,8 @@ namespace SharpRadar
         {
             try
             {
-                var length = (uint)ReadMemoryInt(addr + 0x10); // 0x14
-                return Encoding.Default.GetString(
+                var length = (uint)ReadMemoryInt(addr + 0x10);
+                return Encoding.Unicode.GetString(
                     vmm.MemRead(_pid, addr + 0x14, length * 2, 0));
             }
             catch (Exception ex)
@@ -393,6 +393,9 @@ namespace SharpRadar
 
         // Public implementation of Dispose pattern callable by consumers.
         private bool _disposed = false;
+        /// <summary>
+        /// Calls vmm.Close() and cleans up DMA Unmanaged Resources.
+        /// </summary>
         public void Dispose() => Dispose(true);
 
         protected virtual void Dispose(bool disposing)

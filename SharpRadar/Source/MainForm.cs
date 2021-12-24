@@ -46,7 +46,6 @@ namespace SharpRadar
             this.DoubleBuffered = true; // Prevent flickering
             this.mapCanvas.Paint += mapCanvas_OnPaint;
             this.Resize += MainForm_Resize;
-            this.Shown += MainForm_Shown;
         }
 
         /// <summary>
@@ -54,7 +53,7 @@ namespace SharpRadar
         /// </summary>
         private void LoadMaps()
         {
-            var dir = new DirectoryInfo("\\Maps");
+            var dir = new DirectoryInfo($"{Environment.CurrentDirectory}\\Maps");
             if (!dir.Exists) throw new IOException("Unable to locate Maps folder!");
             var maps = dir.GetFiles("*.png"); // Get all PNG Files
             if (maps.Length == 0) throw new IOException("Maps folder is empty!");
@@ -76,18 +75,6 @@ namespace SharpRadar
         }
 
         /// <summary>
-        /// Main UI Loop.
-        /// </summary>
-        private async void MainForm_Shown(object sender, EventArgs e)
-        {
-            while (true)
-            {
-                refresh();
-                await Task.Delay(33); // Render timer (~30 fps?)
-            }
-        }
-
-        /// <summary>
         /// Handle window resizing
         /// </summary>
         private void MainForm_Resize(object sender, System.EventArgs e)
@@ -100,9 +87,9 @@ namespace SharpRadar
         }
 
         /// <summary>
-        /// GUI Refresh method
+        /// Check if loaded into a raid, set current player info.
         /// </summary>
-        private void refresh() // Request GUI to render next frame
+        private bool IsInRaid()
         {
             if (!_startup && _memory.InGame)
             {
@@ -119,11 +106,9 @@ namespace SharpRadar
                     }
                 }
             }
-            if (_memory.InGame)
-            {
-                mapCanvas.Invalidate(); // Clears canvas, causing it to be re-drawn
-            }
-            else _startup = false;
+            else if (!_memory.InGame) _startup = false;
+
+            return _memory.InGame;
         }
 
         /// <summary>
@@ -143,12 +128,15 @@ namespace SharpRadar
         {
             lock (_renderLock)
             {
-                var render = GetRender(); // Construct next frame
-                mapCanvas.Image = render; // Render next frame
-                
-                // Cleanup Resources
-                _currentRender.Dispose(); // Dispose previous frame
-                _currentRender = render; // Store reference of current frame
+                if (IsInRaid())
+                {
+                    var render = GetRender(); // Construct next frame
+                    mapCanvas.Image = render; // Render next frame
+
+                    // Cleanup Resources
+                    _currentRender.Dispose(); // Dispose previous frame
+                    _currentRender = render; // Store reference of current frame
+                }
             }
         }
 
