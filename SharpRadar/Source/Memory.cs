@@ -204,16 +204,18 @@ namespace SharpRadar
             int playerCnt = ReadMemoryInt(_rgtPlayers + 0x18);
             Debug.WriteLine("Online Raid Player Count is: " + playerCnt);
             ulong listBase = AddressOf(_rgtPlayers + 0x0010);
+            string currentPlayerGroupID = null;
             for (uint i = 0; i < playerCnt; i++)
             {
                 ulong playerBase = AddressOf(listBase + 0x20 + (i * 0x8));
                 /// ToDo - Get Player Location Transform
                 var playerProfile = AddressOf(playerBase + 0x4b0);
                 var playerId = AddressOf(playerProfile + 0x10);
-                var playerIdString = ReadMemoryString(playerId, 64); // Player's Personal ID
+                var playerIdString = ReadMemoryUnityString(playerId); // Player's Personal ID ToDo Testing
                 var playerInfo = AddressOf(playerProfile + 0x28);
                 var playerGroupId = AddressOf(playerInfo + 0x20);
-                var playerGroupIdStr = ReadMemoryString(playerGroupId, 64); // Player's Group Affiliation ID
+                var playerGroupIdStr = ReadMemoryUnityString(playerGroupId); // Player's Group Affiliation ID ToDo testing
+                var playerSide = ReadMemoryInt(playerInfo + 0x58); // Scav, PMC, etc.
                 var playerNickname = AddressOf(playerInfo + 0x10);
                 var nicknameStr = ReadMemoryUnityString(playerNickname); // Now working!
                 Debug.WriteLine($"Player {i + 1}: {nicknameStr}"); // For testing purposes
@@ -221,6 +223,20 @@ namespace SharpRadar
                 var playerIsAlive = true; // ToDo get value if player is alive or not
                 var playerPos = new UnityEngine.Vector3(0,0,0); // ToDo parse vectors from transform
                 var playerType = PlayerType.Default; // ToDo parse player type and assign proper value
+                if (i == 0) // Current player is always first
+                {
+                    currentPlayerGroupID = playerGroupIdStr;
+                    playerType = PlayerType.CurrentPlayer;
+                }
+                else
+                {
+                    if (playerGroupIdStr == currentPlayerGroupID) playerType = PlayerType.Teammate;
+                    else
+                    {
+                        if (playerSide == 0x1 || playerSide == 0x2) playerType = PlayerType.PMC;
+                        else if (playerSide == 0x4) playerType = PlayerType.AIScav; // ToDo determine player scav
+                    }
+                }
                 if (this.Players.TryGetValue(playerIdString, out var player)) // Update existing object
                 {
                     lock (player) // obtain lock

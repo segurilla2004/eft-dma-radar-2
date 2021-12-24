@@ -34,7 +34,7 @@ namespace SharpRadar
         public bool IsAlive = true;
         public UnityEngine.Vector3 Position = new UnityEngine.Vector3(0, 0, 0);
 
-        public Player(string name, string groupId, PlayerType type = PlayerType.Default)
+        public Player(string name, string groupId, PlayerType type)
         {
             Name = name;
             GroupID = groupId;
@@ -50,8 +50,8 @@ namespace SharpRadar
         Default,
         CurrentPlayer,
         Teammate,
-        PMC,
-        AIScav,
+        PMC, // 0x1 usec 0x2 bear
+        AIScav, // 0x4 scav
         AIBoss,
         PlayerScav
     }
