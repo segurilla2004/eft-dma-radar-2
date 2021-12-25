@@ -2,7 +2,7 @@
 {
 	public enum Startup : ulong
     {
-		GameObjectManager = 0x17F1CE8
+		GameObjectManager = 0x17F8D28
 	}
 	public enum BodyParts : ulong
 	{
