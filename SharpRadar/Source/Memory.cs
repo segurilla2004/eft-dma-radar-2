@@ -124,7 +124,7 @@ namespace SharpRadar
         {
             try
             {
-                var addr = AddressOf(_baseModule + 0x17F1CE8);
+                var addr = AddressOf(_baseModule + 0x17F8D28);
                 _gom = ReadMemoryStruct<GameObjectManager>(addr);
                 Debug.WriteLine($"Found Game Object Manager at 0x{addr.ToString("x")}");
                 return true;
