@@ -204,7 +204,7 @@ namespace SharpRadar
             int playerCnt = ReadMemoryInt(_rgtPlayers + 0x18);
             Debug.WriteLine("Online Raid Player Count is: " + playerCnt);
             ulong listBase = AddressOf(_rgtPlayers + 0x0010);
-            string currentPlayerGroupID = null;
+            string currentPlayerGroupID = null; // Cache value to compare possible teammates
             for (uint i = 0; i < playerCnt; i++)
             {
                 ulong playerBase = AddressOf(listBase + 0x20 + (i * 0x8));
@@ -216,31 +216,12 @@ namespace SharpRadar
                 var playerGroupId = AddressOf(playerInfo + 0x20);
                 var playerGroupIdStr = ReadMemoryUnityString(playerGroupId); // Player's Group Affiliation ID ToDo testing
                 var playerSide = ReadMemoryInt(playerInfo + 0x58); // Scav, PMC, etc.
-                var playerNickname = AddressOf(playerInfo + 0x10);
-                var nicknameStr = ReadMemoryUnityString(playerNickname); // Now working!
-                Debug.WriteLine($"Player {i + 1}: {nicknameStr}"); // For testing purposes
 
                 var playerIsAlive = true; // ToDo get value if player is alive or not
                 var playerPos = new UnityEngine.Vector3(0,0,0); // ToDo parse vectors from transform
-                var playerType = PlayerType.Default; // ToDo parse player type and assign proper value
                 if (i == 0) // Current player is always first
                 {
                     currentPlayerGroupID = playerGroupIdStr;
-                    playerType = PlayerType.CurrentPlayer;
-                }
-                else
-                {
-                    if (playerGroupIdStr == currentPlayerGroupID) playerType = PlayerType.Teammate;
-                    else
-                    {
-                        if (playerSide == 0x1 || playerSide == 0x2) playerType = PlayerType.PMC;
-                        else if (playerSide == 0x4)
-                        {
-                            var regDate = ReadMemoryInt(playerInfo + 0x5C); // Bots wont have 'reg date'
-                            if (regDate == 0) playerType = PlayerType.AIScav;
-                            else playerType = PlayerType.PlayerScav;
-                        }
-                    }
                 }
                 if (this.Players.TryGetValue(playerIdString, out var player)) // Update existing object
                 {
@@ -255,6 +236,27 @@ namespace SharpRadar
                 }
                 else // Create new object
                 {
+                    var playerNickname = AddressOf(playerInfo + 0x10);
+                    var nicknameStr = ReadMemoryUnityString(playerNickname); // Now working!
+                    var playerType = PlayerType.Default; // ToDo parse player type and assign proper value
+                    if (i == 0) // Current player is always first
+                    {
+                        playerType = PlayerType.CurrentPlayer;
+                    }
+                    else
+                    {
+                        if (playerGroupIdStr == currentPlayerGroupID) playerType = PlayerType.Teammate;
+                        else
+                        {
+                            if (playerSide == 0x1 || playerSide == 0x2) playerType = PlayerType.PMC;
+                            else if (playerSide == 0x4)
+                            {
+                                var regDate = ReadMemoryInt(playerInfo + 0x5C); // Bots wont have 'reg date'
+                                if (regDate == 0) playerType = PlayerType.AIScav;
+                                else playerType = PlayerType.PlayerScav;
+                            }
+                        }
+                    }
                     this.Players.TryAdd(playerIdString, new Player(
                         nicknameStr, // Player's name
                         playerGroupIdStr, // Player's Group ID
