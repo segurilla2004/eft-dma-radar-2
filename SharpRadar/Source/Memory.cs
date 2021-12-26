@@ -234,7 +234,12 @@ namespace SharpRadar
                     else
                     {
                         if (playerSide == 0x1 || playerSide == 0x2) playerType = PlayerType.PMC;
-                        else if (playerSide == 0x4) playerType = PlayerType.AIScav; // ToDo determine player scav
+                        else if (playerSide == 0x4)
+                        {
+                            var regDate = ReadMemoryInt(playerInfo + 0x5C); // Bots wont have 'reg date'
+                            if (regDate == 0) playerType = PlayerType.AIScav;
+                            else playerType = PlayerType.PlayerScav;
+                        }
                     }
                 }
                 if (this.Players.TryGetValue(playerIdString, out var player)) // Update existing object
@@ -269,7 +274,7 @@ namespace SharpRadar
         {
             try
             {
-                return BitConverter.ToUInt64(vmm.MemRead(_pid, addr, 8, 0), 0);
+                return BitConverter.ToUInt64(vmm.MemRead(_pid, addr, 8, vmm.FLAG_NOCACHE), 0);
             }
             catch (Exception ex)
             {
@@ -281,7 +286,7 @@ namespace SharpRadar
         {
             try
             {
-                return BitConverter.ToInt64(vmm.MemRead(_pid, addr, 8, 0), 0);
+                return BitConverter.ToInt64(vmm.MemRead(_pid, addr, 8, vmm.FLAG_NOCACHE), 0);
             }
             catch (Exception ex)
             {
@@ -292,7 +297,7 @@ namespace SharpRadar
         {
             try
             {
-                return BitConverter.ToInt32(vmm.MemRead(_pid, addr, 4, 0), 0);
+                return BitConverter.ToInt32(vmm.MemRead(_pid, addr, 4, vmm.FLAG_NOCACHE), 0);
             }
             catch (Exception ex)
             {
@@ -303,7 +308,7 @@ namespace SharpRadar
         {
             try
             {
-                return BitConverter.ToUInt32(vmm.MemRead(_pid, addr, 4, 0), 0);
+                return BitConverter.ToUInt32(vmm.MemRead(_pid, addr, 4, vmm.FLAG_NOCACHE), 0);
             }
             catch (Exception ex)
             {
@@ -314,7 +319,7 @@ namespace SharpRadar
         {
             try
             {
-                return BitConverter.ToSingle(vmm.MemRead(_pid, addr, 4, 0), 0);
+                return BitConverter.ToSingle(vmm.MemRead(_pid, addr, 4, vmm.FLAG_NOCACHE), 0);
             }
             catch (Exception ex)
             {
@@ -325,7 +330,7 @@ namespace SharpRadar
         {
             try
             {
-                return BitConverter.ToDouble(vmm.MemRead(_pid, addr, 8, 0), 0);
+                return BitConverter.ToDouble(vmm.MemRead(_pid, addr, 8, vmm.FLAG_NOCACHE), 0);
             }
             catch (Exception ex)
             {
@@ -336,7 +341,7 @@ namespace SharpRadar
         {
             try
             {
-                return BitConverter.ToBoolean(vmm.MemRead(_pid, addr, 1, 0), 0);
+                return BitConverter.ToBoolean(vmm.MemRead(_pid, addr, 1, vmm.FLAG_NOCACHE), 0);
             }
             catch (Exception ex)
             {
@@ -351,7 +356,7 @@ namespace SharpRadar
             try
             {
                 Marshal.Copy(
-                    vmm.MemRead(_pid, addr, (uint)size, 0), 
+                    vmm.MemRead(_pid, addr, (uint)size, vmm.FLAG_NOCACHE), 
                     0, mem, size); // Read to pointer location
 
                 return (T)Marshal.PtrToStructure(mem, typeof(T)); // Convert bytes to struct
@@ -373,7 +378,7 @@ namespace SharpRadar
             try
             {
                 return Encoding.Default.GetString(
-                    vmm.MemRead(_pid, addr, size, 0));
+                    vmm.MemRead(_pid, addr, size, vmm.FLAG_NOCACHE));
             }
             catch (Exception ex)
             {
@@ -390,7 +395,7 @@ namespace SharpRadar
             {
                 var length = (uint)ReadMemoryInt(addr + 0x10);
                 return Encoding.Unicode.GetString(
-                    vmm.MemRead(_pid, addr + 0x14, length * 2, 0));
+                    vmm.MemRead(_pid, addr + 0x14, length * 2, vmm.FLAG_NOCACHE));
             }
             catch (Exception ex)
             {

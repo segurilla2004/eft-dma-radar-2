@@ -91,7 +91,8 @@ namespace SharpRadar
         /// </summary>
         private bool IsInRaid()
         {
-            if (!_startup && _memory.InGame)
+            bool inGame = _memory.InGame; // Cache bool read
+            if (!_startup && inGame)
             {
                 foreach (KeyValuePair<string,Player> player in _memory.Players)
                 {
@@ -106,9 +107,9 @@ namespace SharpRadar
                     }
                 }
             }
-            else if (!_memory.InGame) _startup = false;
+            else if (!inGame) _startup = false;
 
-            return _memory.InGame;
+            return inGame;
         }
 
         /// <summary>
@@ -126,9 +127,9 @@ namespace SharpRadar
         /// </summary>
         private void mapCanvas_OnPaint(object sender, PaintEventArgs e)
         {
-            if (IsInRaid())
+            lock (_renderLock)
             {
-                lock (_renderLock)
+                if (IsInRaid())
                 {
                     var render = GetRender(); // Construct next frame
                     mapCanvas.Image = render; // Render next frame
@@ -204,8 +205,8 @@ namespace SharpRadar
                                 Pen pen;
                                 if (player.Value.IsAlive is false)
                                 { // Draw 'X'
-                                    gr.DrawLine(blk, new Point(playerPos.X, playerPos.Y - strokeLength / 2), new Point(playerPos.X + strokeLength, playerPos.Y + strokeLength / 2));
-                                    gr.DrawLine(blk, new Point(playerPos.X, playerPos.Y + strokeLength / 2), new Point(playerPos.X + strokeLength, playerPos.Y - strokeLength / 2));
+                                    gr.DrawLine(blk, new Point(playerPos.X - strokeLength / 2, playerPos.Y + strokeLength / 2), new Point(playerPos.X + strokeLength / 2, playerPos.Y - strokeLength / 2));
+                                    gr.DrawLine(blk, new Point(playerPos.X - strokeLength / 2, playerPos.Y - strokeLength / 2), new Point(playerPos.X + strokeLength / 2, playerPos.Y + strokeLength / 2));
                                     continue;
                                 }
                                 else if (player.Value.Type is PlayerType.Teammate) pen = grn;
