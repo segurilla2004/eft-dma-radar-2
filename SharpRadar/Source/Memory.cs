@@ -208,15 +208,14 @@ namespace SharpRadar
             for (uint i = 0; i < playerCnt; i++)
             {
                 ulong playerBase = AddressOf(listBase + 0x20 + (i * 0x8));
-                /// ToDo - Get Player Location Transform
                 var playerProfile = AddressOf(playerBase + 0x4b0);
                 var playerId = AddressOf(playerProfile + 0x10);
                 var playerIdString = ReadMemoryUnityString(playerId); // Player's Personal ID ToDo Testing
                 var playerInfo = AddressOf(playerProfile + 0x28);
                 var playerGroupId = AddressOf(playerInfo + 0x20);
                 var playerGroupIdStr = ReadMemoryUnityString(playerGroupId); // Player's Group Affiliation ID ToDo testing
-                var playerSide = ReadMemoryInt(playerInfo + 0x58); // Scav, PMC, etc.
 
+                /// ToDo - Get Player Location Transform -> Position
                 var playerIsAlive = true; // ToDo get value if player is alive or not
                 var playerPos = new UnityEngine.Vector3(0,0,0); // ToDo parse vectors from transform
                 if (i == 0) // Current player is always first
@@ -238,6 +237,7 @@ namespace SharpRadar
                 {
                     var playerNickname = AddressOf(playerInfo + 0x10);
                     var nicknameStr = ReadMemoryUnityString(playerNickname); // Now working!
+                    var playerSide = ReadMemoryInt(playerInfo + 0x58); // Scav, PMC, etc.
                     var playerType = PlayerType.Default; // ToDo parse player type and assign proper value
                     if (i == 0) // Current player is always first
                     {
