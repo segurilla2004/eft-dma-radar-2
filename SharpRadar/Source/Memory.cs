@@ -62,19 +62,19 @@ namespace SharpRadar
                     if (GetLGW()) // Try find raid
                     {
                         this.Players = new ConcurrentDictionary<string, Player>();
+                        Console.WriteLine("Preparing raid...");
+                        while (GetRegPlayers() == 0)
+                        {
+                            Thread.Sleep(10);
+                        }
                         Console.WriteLine("Raid started!");
                         _inGame = true;
-                        while (GetRegPlayers()) // Main game loop
+                        while (GetRegPlayers() > 0) // Main game loop
                         {
                             try
                             {
                                 GameLoop();
-                                Thread.Sleep(25); // Tick
-                            }
-                            catch (Exception ex)
-                            {
-                                Debug.WriteLine(ex.ToString()); // for debug purposes
-                            }
+                            }catch { } finally { Thread.Sleep(10); }
                         }
                         Console.WriteLine("Raid ended!"); // ToDo - not working
                         _inGame = false;
@@ -161,17 +161,18 @@ namespace SharpRadar
                 return false;
             }
         }
-        private bool GetRegPlayers()
+        private int GetRegPlayers()
         {
             try
             {
                 _rgtPlayers = AddressOf(_localGameWorld + 0x80);
-                return true;
+                int playerCnt = ReadMemoryInt(_rgtPlayers + 0x18);
+                return playerCnt;
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"ERROR getting Registered Players: {ex}");
-                return false;
+                return 0;
             }
         }
 
@@ -228,7 +229,7 @@ namespace SharpRadar
                     var playerTransform = AddressOf(playerBase, new ulong[] { 0xA8, 0x28, 0x28, 0x10, 0x20 });
 
                     var playerIsAlive = true; // ToDo get value if player is alive or not
-                    var playerPos = GetPosition(new UIntPtr(playerTransform));
+                    var playerPos = GetPosition(playerTransform);
                     if (i == 0) // Current player is always first
                     {
                         currentPlayerGroupID = playerGroupIdStr;
@@ -285,7 +286,7 @@ namespace SharpRadar
         /// <summary>
         /// ToDo - Cleanup
         /// </summary>
-        private unsafe Vector3 GetPosition(UIntPtr transform)
+        private unsafe Vector3 GetPosition(ulong transform)
         {
             ulong pMatricesBuf = 0;
             ulong pIndicesBuf = 0;
@@ -329,24 +330,24 @@ namespace SharpRadar
         /// <summary>
         /// ToDo - Cleanup
         /// </summary>
-        private unsafe Tuple<ulong, ulong, int> GetPositionOffset(UIntPtr transform)
+        private unsafe Tuple<ulong, ulong, int> GetPositionOffset(ulong transform)
         {
-            UIntPtr transform_internal = GetUintPtr(transform, new int[] { 0x10 });
+            var transform_internal = AddressOf(transform + 0x10);
 
-            UIntPtr pMatrix = GetUintPtr(transform_internal, new int[] { 0x38 });
-            int index = ReadMemoryInt((ulong)transform_internal + 0x40);
+            var pMatrix = AddressOf(transform_internal + 0x38);
+            int index = ReadMemoryInt(transform_internal + 0x40);
 
-            UIntPtr matrix_list_base = GetUintPtr(pMatrix, new int[] { 0x18 });
+            var matrix_list_base = AddressOf(pMatrix + 0x18);
 
-            UIntPtr dependency_index_table_base = GetUintPtr(pMatrix, new int[] { 0x20 });
+            var dependency_index_table_base = AddressOf(pMatrix + 0x20);
 
-            UIntPtr pMatricesBufPtr = new UIntPtr((ulong)Marshal.AllocHGlobal(sizeof(Matrix34) * index + sizeof(Matrix34)).ToInt64()); // sizeof(Matrix34) == 48
+            IntPtr pMatricesBufPtr = new IntPtr(Marshal.AllocHGlobal(sizeof(Matrix34) * index + sizeof(Matrix34)).ToInt64()); // sizeof(Matrix34) == 48
             void* pMatricesBuf = pMatricesBufPtr.ToPointer();
-            ReadMemoryToBuffer(matrix_list_base.ToUInt64(), pMatricesBufPtr, sizeof(Matrix34) * index + sizeof(Matrix34));
+            ReadMemoryToBuffer(matrix_list_base, pMatricesBufPtr, sizeof(Matrix34) * index + sizeof(Matrix34));
 
-            UIntPtr pIndicesBufPtr = new UIntPtr((ulong)Marshal.AllocHGlobal(sizeof(int) * index + sizeof(int)).ToInt64());
+            IntPtr pIndicesBufPtr = new IntPtr(Marshal.AllocHGlobal(sizeof(int) * index + sizeof(int)).ToInt64());
             void* pIndicesBuf = pIndicesBufPtr.ToPointer();
-            ReadMemoryToBuffer(dependency_index_table_base.ToUInt64(), pIndicesBufPtr, sizeof(int) * index + sizeof(int));
+            ReadMemoryToBuffer(dependency_index_table_base, pIndicesBufPtr, sizeof(int) * index + sizeof(int));
 
             return Tuple.Create((UInt64)pMatricesBuf, (UInt64)pIndicesBuf, index);
         }
@@ -362,24 +363,10 @@ namespace SharpRadar
         /// <summary>
         /// Copy 'n' bytes to unmanaged memory. Caller is responsible for freeing memory.
         /// </summary>
-        private unsafe void ReadMemoryToBuffer(ulong addr, UIntPtr bufPtr, int size)
+        private unsafe void ReadMemoryToBuffer(ulong addr, IntPtr bufPtr, int size)
         {
-            var ptr = new IntPtr(bufPtr.ToPointer());
             Marshal.Copy(vmm.MemRead(_pid, addr, (uint)size, vmm.FLAG_NOCACHE)
-                , 0, ptr, size);
-        }
-
-        /// <summary>
-        /// Return a managed UIntPtr Address.
-        /// </summary>
-        private UIntPtr GetUintPtr(UIntPtr addr, int[] offsets)
-        {
-            var result = AddressOf(addr.ToUInt64() + (uint)offsets[0]);
-            for (int i = 1; i < offsets.Length; i++)
-            {
-                result = AddressOf(result + (uint)offsets[i]);
-            }
-            return new UIntPtr(result);
+                , 0, bufPtr, size);
         }
 
         /// <summary>

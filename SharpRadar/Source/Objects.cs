@@ -51,10 +51,10 @@ namespace SharpRadar
         Default,
         CurrentPlayer,
         Teammate,
-        PMC, // 0x1 usec 0x2 bear
-        AIScav, // 0x4 scav
-        AIBoss,
-        PlayerScav
+        PMC, // side 0x1 0x2
+        AIScav, // side 0x4
+        AIBoss, // ToDo
+        PlayerScav // side 0x4
     }
 
     /// <summary>
@@ -65,6 +65,22 @@ namespace SharpRadar
         public int X;
         public int Y;
         public int Height; // Z
+
+        /// <summary>
+        /// Get exact player location.
+        /// </summary>
+        public Point GetPlayerCirclePoint(int offset)
+        {
+            return new Point(X - offset, Y - offset);
+        }
+
+        /// <summary>
+        /// Gets Point where player name should be drawn.
+        /// </summary>
+        public Point GetNamePoint(int offset)
+        {
+            return new Point(X + offset, Y - offset);
+        }
     }
 
     /// <summary>

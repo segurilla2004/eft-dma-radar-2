@@ -55,7 +55,7 @@ namespace SharpRadar
         {
             while (true)
             {
-                await Task.Delay(33);
+                await Task.Delay(30);
                 mapCanvas.Invalidate();
             }
         }
@@ -164,11 +164,18 @@ namespace SharpRadar
         {
             int zoom = (int)(_maxZoom * _zoom); // Get zoom level
             int strokeLength = zoom / 125; // Lower constant = longer stroke
+            int fontSize = zoom / 100;
             if (strokeLength < 5) strokeLength = 5; // Min value
             int strokeWidth = zoom / 300; // Lower constant = wider stroke
             if (strokeWidth < 4) strokeWidth = 4; // Min value
             using (var render = (Bitmap)_currentMap.MapFile.Clone()) // Get a fresh map to draw on
-            using (var grn = new Pen(Color.LimeGreen)
+            using (var drawFont = new Font("Arial", fontSize, FontStyle.Bold))
+            using (var drawBrush = new SolidBrush(Color.Black))
+            using (var grn = new Pen(Color.DarkGreen)
+            {
+                Width = strokeWidth
+            })
+            using (var ltGrn = new Pen(Color.LightGreen)
             {
                 Width = strokeWidth
             })
@@ -204,6 +211,7 @@ namespace SharpRadar
                 using (var gr = Graphics.FromImage(render)) // Get fresh frame
                 {
                     // Draw Current Player
+                    gr.DrawEllipse(grn, new Rectangle(currentPlayerPos.GetPlayerCirclePoint(strokeLength), new Size(strokeLength * 2, strokeLength * 2)));
                     gr.DrawLine(grn, new Point(currentPlayerPos.X - strokeLength, currentPlayerPos.Y), new Point(currentPlayerPos.X + strokeLength, currentPlayerPos.Y));
                     gr.DrawLine(grn, new Point(currentPlayerPos.X, currentPlayerPos.Y - strokeLength), new Point(currentPlayerPos.X, currentPlayerPos.Y + strokeLength));
                     // Draw Other Players
@@ -225,13 +233,14 @@ namespace SharpRadar
                                     gr.DrawLine(blk, new Point(playerPos.X - strokeLength / 2, playerPos.Y - strokeLength / 2), new Point(playerPos.X + strokeLength / 2, playerPos.Y + strokeLength / 2));
                                     continue;
                                 }
-                                else if (player.Value.Type is PlayerType.Teammate) pen = grn;
+                                else if (player.Value.Type is PlayerType.Teammate) pen = ltGrn;
                                 else if (player.Value.Type is PlayerType.PMC) pen = red;
                                 else if (player.Value.Type is PlayerType.PlayerScav) pen = wht;
                                 else if (player.Value.Type is PlayerType.AIBoss) pen = vlt;
                                 else if (player.Value.Type is PlayerType.AIScav) pen = ylw;
                                 else pen = red; // Default
                                 // Draw '+'
+                                gr.DrawString(player.Value.Name, drawFont, drawBrush, playerPos.GetNamePoint(fontSize));
                                 gr.DrawLine(pen, new Point(playerPos.X - strokeLength, playerPos.Y), new Point(playerPos.X + strokeLength, playerPos.Y));
                                 gr.DrawLine(pen, new Point(playerPos.X, playerPos.Y - strokeLength), new Point(playerPos.X, playerPos.Y + strokeLength));
                             }
