@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Numerics;
 using System.Threading;
 
 namespace SharpRadar
@@ -32,7 +33,7 @@ namespace SharpRadar
         public readonly PlayerType Type;
         public readonly string GroupID;
         public bool IsAlive = true;
-        public UnityEngine.Vector3 Position = new UnityEngine.Vector3(0, 0, 0);
+        public Vector3 Position = new Vector3(0, 0, 0);
 
         public Player(string name, string groupId, PlayerType type)
         {
@@ -132,5 +133,13 @@ namespace SharpRadar
         public ulong nextObjectLink; //0x0008
         public ulong obj; //0x0010
 	};
+
+
+    public struct Matrix34
+    {
+        public Vector4 vec0;
+        public Vector4 vec1;
+        public Vector4 vec2;
+    }
 
 }

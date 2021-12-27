@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -29,7 +31,7 @@ namespace SharpRadar
             "0",
             PlayerType.CurrentPlayer) // Default Starting Values
         {
-            Position = new UnityEngine.Vector3(0, 0, 0)
+            Position = new Vector3(0, 0, 0)
         };
         private bool _startup = false; // Game startup flag
 
@@ -46,6 +48,16 @@ namespace SharpRadar
             this.DoubleBuffered = true; // Prevent flickering
             this.mapCanvas.Paint += mapCanvas_OnPaint;
             this.Resize += MainForm_Resize;
+            this.Shown += MainForm_Shown;
+        }
+
+        private async void MainForm_Shown(object sender, EventArgs e)
+        {
+            while (true)
+            {
+                await Task.Delay(33);
+                mapCanvas.Invalidate();
+            }
         }
 
         /// <summary>
@@ -54,7 +66,11 @@ namespace SharpRadar
         private void LoadMaps()
         {
             var dir = new DirectoryInfo($"{Environment.CurrentDirectory}\\Maps");
-            if (!dir.Exists) throw new IOException("Unable to locate Maps folder!");
+            if (!dir.Exists)
+            {
+                dir.Create();
+                throw new IOException("Unable to locate Maps folder!");
+            }
             var maps = dir.GetFiles("*.png"); // Get all PNG Files
             if (maps.Length == 0) throw new IOException("Maps folder is empty!");
             foreach (var map in maps)
@@ -181,7 +197,7 @@ namespace SharpRadar
                 lock (_currentPlayer) // Obtain object lock
                 {
                     currentPlayerPos = VectorToMapPos(_currentPlayer.Position);
-                    label_Pos.Text = $"X: {_currentPlayer.Position.x}\r\nY: {_currentPlayer.Position.y}\r\nZ: {_currentPlayer.Position.z}";
+                    label_Pos.Text = $"X: {_currentPlayer.Position.X}\r\nY: {_currentPlayer.Position.Y}\r\nZ: {_currentPlayer.Position.Z}";
                 }
                 // Get map frame bounds (Based on Zoom Level, centered on Current Player)
                 var bounds = new Rectangle(currentPlayerPos.X - zoom / 2, currentPlayerPos.Y - zoom / 2, zoom, zoom);
@@ -243,7 +259,7 @@ namespace SharpRadar
         /// <summary>
         /// ToDo - Convert game positional values to UI Map Coordinates.
         /// </summary>
-        private MapPosition VectorToMapPos(UnityEngine.Vector3 vector)
+        private MapPosition VectorToMapPos(Vector3 vector)
         {
             return new MapPosition();
         }

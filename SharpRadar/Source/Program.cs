@@ -20,7 +20,7 @@ namespace SharpRadar
         [STAThread]
         static void Main()
         {
-
+            Console.OutputEncoding = System.Text.Encoding.Unicode; // allow russian chars
             try
             {
                 _mutex = new Mutex(true, "CD953537-CB17-4735-82DC-A449D372C938", out bool singleton);
