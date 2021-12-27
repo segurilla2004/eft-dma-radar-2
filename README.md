@@ -3,7 +3,7 @@ This is not completed and has a ***LOT*** of bugs still. I was able to get this 
 
 ### Instructions
 1. You need a DMA Device (Screamer, Raptor DMA,etc.) installed on your game PC with (hopefully) good/safe firmware. Don't ask me how.
-2. Build/compile the app. Copy the .DLL files in the Resources folder to your build folder.
+2. Build/compile the app for Release x64. Copy the .DLL files in the Resources folder to your build folder.
 3. Import any maps you would like to use (.PNG files only) into the \\Maps sub-folder. Make sure you have a corresponding .JSON file with the same name. For example, `Customs.PNG` and `Customs.JSON`
 4. Run the program on your **2nd PC** that has the USB Cable plugged into. Click the Map button to cycle through maps if you need.
 
