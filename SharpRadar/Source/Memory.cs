@@ -284,7 +284,7 @@ namespace SharpRadar
         }
 
         /// <summary>
-        /// ToDo - Cleanup
+        /// Converts player transform to X,Y,Z coordinates (Vector3)
         /// </summary>
         private unsafe Vector3 GetPosition(ulong transform)
         {
@@ -328,7 +328,7 @@ namespace SharpRadar
         }
 
         /// <summary>
-        /// ToDo - Cleanup
+        /// Helper method for GetPosition()
         /// </summary>
         private unsafe Tuple<ulong, ulong, int> GetPositionOffset(ulong transform)
         {
