@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
@@ -8,6 +9,8 @@ namespace SharpRadar
     internal static class Program
     {
         private static Mutex _mutex;
+        /* Remember to turn off DEBUG CONSTANT in Properties! */
+        private static readonly DebugListener _debug = new DebugListener();
         private static Memory _memory;
         private delegate bool EventHandler(int sig);
         private static EventHandler _handler;
@@ -17,12 +20,13 @@ namespace SharpRadar
         [STAThread]
         static void Main()
         {
-
+            Console.OutputEncoding = System.Text.Encoding.Unicode; // allow russian chars
             try
             {
                 _mutex = new Mutex(true, "CD953537-CB17-4735-82DC-A449D372C938", out bool singleton);
                 if (singleton)
                 {
+                    Debug.Listeners.Add(_debug); // Provide console logging when in debug mode
                     _memory = new Memory(); // vmm.Init
                     _handler += new EventHandler(ShutdownHandler);
                     SetConsoleCtrlHandler(_handler, true); // Handle Ctrl-C exit

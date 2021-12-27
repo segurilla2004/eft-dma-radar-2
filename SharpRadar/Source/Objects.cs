@@ -1,53 +1,116 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Drawing;
+using System.IO;
+using System.Numerics;
+using System.Threading;
 
 namespace SharpRadar
 {
 
-    /// <summary>
-    /// GUI Testing Structures, may change
-    /// </summary>
-    public class Game
+    // GUI Testing Structures, may change
+
+    public class DebugListener : TraceListener // Debug Listener
     {
-        public Player CurrentPlayer;
-        public ConcurrentBag<PMC> PMCs = new ConcurrentBag<PMC>();
-        public ConcurrentBag<Scav> Scavs = new ConcurrentBag<Scav>();
+        public override void Write(string message)
+        {
+            Console.Write(message);
+        }
+        public override void WriteLine(string message)
+        {
+            Console.WriteLine(message);
+        }
     }
 
-    public class Unit
+    /// <summary>
+    /// Class containing Game Player Data. Use lock() when accessing instances of this class.
+    /// </summary>
+    public class Player
+    {
+        public readonly string Name;
+        public readonly PlayerType Type;
+        public readonly string GroupID;
+        public bool IsAlive = true;
+        public Vector3 Position = new Vector3(0, 0, 0);
+
+        public Player(string name, string groupId, PlayerType type)
+        {
+            Name = name;
+            GroupID = groupId;
+            Type = type;
+        }
+    }
+
+    /// <summary>
+    /// Defines Player Unit Type (Player,PMC,Scav,etc.)
+    /// </summary>
+    public enum PlayerType
+    {
+        Default,
+        CurrentPlayer,
+        Teammate,
+        PMC, // 0x1 usec 0x2 bear
+        AIScav, // 0x4 scav
+        AIBoss,
+        PlayerScav
+    }
+
+    /// <summary>
+    /// Defines map position for the UI Map.
+    /// </summary>
+    public struct MapPosition
     {
         public int X;
         public int Y;
-        public int Group;
-        public bool? IsAlive = true;
-        public Point Position
-        {
-            get
-            {
-                return new Point(X, Y);
-            }
-        }
-    }
-    public class Player : Unit
-    {
-        // ToDo
-
-    }
-
-    public class PMC : Unit
-    {
-    }
-
-    public class Scav : Unit
-    {
-        public bool IsPlayerScav;
-        public bool IsBoss;
+        public int Height; // Z
     }
 
     /// <summary>
-    /// EFT/Unity Structures (WIP)
+    /// Defines a .PNG Map File and corresponding .JSON config file from \\Maps folder.
     /// </summary>
+    public class Map
+    {
+        public readonly string Name;
+        public readonly Bitmap MapFile;
+        public readonly MapConfig ConfigFile;
+
+        public Map(string name, Bitmap map, MapConfig config)
+        {
+            Name = name;
+            MapFile = map;
+            ConfigFile = config;
+        }
+    }
+
+    /// <summary>
+    /// Defines a .JSON Map Config File
+    /// </summary>
+    public class MapConfig
+    {
+        [JsonProperty("x")]
+        public float X;
+        [JsonProperty("y")]
+        public float Y;
+        [JsonProperty("z")]
+        public float Z;
+        [JsonProperty("scale")]
+        public float Scale;
+
+
+        public static MapConfig LoadFromFile(string file)
+        {
+            using (var stream = File.OpenText(file))
+            {
+                var json = new JsonSerializer();
+                return (MapConfig)json.Deserialize(stream, typeof(MapConfig));
+            }
+        }
+    }
+
+    // EFT/Unity Structures (WIP)
+
     public struct GameObjectManager
     {
         public ulong LastTaggedNode; // 0x0
@@ -71,17 +134,12 @@ namespace SharpRadar
         public ulong obj; //0x0010
 	};
 
-    public struct ListInternal // Not sure if this is correct
-    {
-		public unsafe fixed byte pad_0x0000[0x20]; //0x0000
-        public ulong firstEntry; //0x0020 
-    }; //Size=0x0028
 
-    public struct List // Not sure if this is correct
+    public struct Matrix34
     {
-		public unsafe fixed byte pad_0x0000[0x10]; //0x0000
-        public ulong listBase; //0x0010    to ListInternal
-        public int itemCount; //0x0018 
-    }; //Size=0x001C
+        public Vector4 vec0;
+        public Vector4 vec1;
+        public Vector4 vec2;
+    }
 
 }

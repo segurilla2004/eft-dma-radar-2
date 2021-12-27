@@ -28,29 +28,16 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.label1 = new System.Windows.Forms.Label();
             this.mapCanvas = new System.Windows.Forms.PictureBox();
-            this.button_up = new System.Windows.Forms.Button();
-            this.button_left = new System.Windows.Forms.Button();
-            this.button_right = new System.Windows.Forms.Button();
-            this.button_down = new System.Windows.Forms.Button();
             this.trackBar_Zoom = new System.Windows.Forms.TrackBar();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
-            this.label_debug = new System.Windows.Forms.Label();
-            this.button_testAddUnits = new System.Windows.Forms.Button();
+            this.button_Map = new System.Windows.Forms.Button();
+            this.label_Map = new System.Windows.Forms.Label();
+            this.label_Pos = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.mapCanvas)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar_Zoom)).BeginInit();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
-            // 
-            // label1
-            // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(12, 659);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(35, 13);
-            this.label1.TabIndex = 0;
-            this.label1.Text = "label1";
             // 
             // mapCanvas
             // 
@@ -62,49 +49,9 @@
             this.mapCanvas.TabIndex = 1;
             this.mapCanvas.TabStop = false;
             // 
-            // button_up
-            // 
-            this.button_up.Location = new System.Drawing.Point(59, 30);
-            this.button_up.Name = "button_up";
-            this.button_up.Size = new System.Drawing.Size(73, 40);
-            this.button_up.TabIndex = 2;
-            this.button_up.Text = "Up";
-            this.button_up.UseVisualStyleBackColor = true;
-            this.button_up.Click += new System.EventHandler(this.button_up_Click);
-            // 
-            // button_left
-            // 
-            this.button_left.Location = new System.Drawing.Point(8, 76);
-            this.button_left.Name = "button_left";
-            this.button_left.Size = new System.Drawing.Size(73, 40);
-            this.button_left.TabIndex = 3;
-            this.button_left.Text = "Left";
-            this.button_left.UseVisualStyleBackColor = true;
-            this.button_left.Click += new System.EventHandler(this.button_left_Click);
-            // 
-            // button_right
-            // 
-            this.button_right.Location = new System.Drawing.Point(110, 76);
-            this.button_right.Name = "button_right";
-            this.button_right.Size = new System.Drawing.Size(73, 40);
-            this.button_right.TabIndex = 4;
-            this.button_right.Text = "Right";
-            this.button_right.UseVisualStyleBackColor = true;
-            this.button_right.Click += new System.EventHandler(this.button_right_Click);
-            // 
-            // button_down
-            // 
-            this.button_down.Location = new System.Drawing.Point(59, 122);
-            this.button_down.Name = "button_down";
-            this.button_down.Size = new System.Drawing.Size(73, 40);
-            this.button_down.TabIndex = 5;
-            this.button_down.Text = "Down";
-            this.button_down.UseVisualStyleBackColor = true;
-            this.button_down.Click += new System.EventHandler(this.button_down_Click);
-            // 
             // trackBar_Zoom
             // 
-            this.trackBar_Zoom.Location = new System.Drawing.Point(36, 201);
+            this.trackBar_Zoom.Location = new System.Drawing.Point(169, 19);
             this.trackBar_Zoom.Maximum = 99;
             this.trackBar_Zoom.Name = "trackBar_Zoom";
             this.trackBar_Zoom.Orientation = System.Windows.Forms.Orientation.Vertical;
@@ -114,13 +61,10 @@
             // 
             // groupBox1
             // 
-            this.groupBox1.Controls.Add(this.label_debug);
-            this.groupBox1.Controls.Add(this.button_testAddUnits);
-            this.groupBox1.Controls.Add(this.button_up);
+            this.groupBox1.Controls.Add(this.label_Pos);
+            this.groupBox1.Controls.Add(this.label_Map);
+            this.groupBox1.Controls.Add(this.button_Map);
             this.groupBox1.Controls.Add(this.trackBar_Zoom);
-            this.groupBox1.Controls.Add(this.button_left);
-            this.groupBox1.Controls.Add(this.button_down);
-            this.groupBox1.Controls.Add(this.button_right);
             this.groupBox1.Dock = System.Windows.Forms.DockStyle.Right;
             this.groupBox1.Location = new System.Drawing.Point(919, 0);
             this.groupBox1.Name = "groupBox1";
@@ -129,24 +73,32 @@
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Testing Controls";
             // 
-            // label_debug
+            // button_Map
             // 
-            this.label_debug.AutoSize = true;
-            this.label_debug.Location = new System.Drawing.Point(46, 628);
-            this.label_debug.Name = "label_debug";
-            this.label_debug.Size = new System.Drawing.Size(37, 13);
-            this.label_debug.TabIndex = 8;
-            this.label_debug.Text = "debug";
+            this.button_Map.Location = new System.Drawing.Point(38, 29);
+            this.button_Map.Name = "button_Map";
+            this.button_Map.Size = new System.Drawing.Size(75, 23);
+            this.button_Map.TabIndex = 7;
+            this.button_Map.Text = "Map";
+            this.button_Map.UseVisualStyleBackColor = true;
+            this.button_Map.Click += new System.EventHandler(this.button_Map_Click);
             // 
-            // button_testAddUnits
+            // label_Map
             // 
-            this.button_testAddUnits.Location = new System.Drawing.Point(121, 227);
-            this.button_testAddUnits.Name = "button_testAddUnits";
-            this.button_testAddUnits.Size = new System.Drawing.Size(75, 23);
-            this.button_testAddUnits.TabIndex = 7;
-            this.button_testAddUnits.Text = "Add units";
-            this.button_testAddUnits.UseVisualStyleBackColor = true;
-            this.button_testAddUnits.Click += new System.EventHandler(this.button_testAddUnits_Click);
+            this.label_Map.AutoSize = true;
+            this.label_Map.Location = new System.Drawing.Point(35, 55);
+            this.label_Map.Name = "label_Map";
+            this.label_Map.Size = new System.Drawing.Size(79, 13);
+            this.label_Map.TabIndex = 8;
+            this.label_Map.Text = "DEFAULTMAP";
+            // 
+            // label_Pos
+            // 
+            this.label_Pos.AutoSize = true;
+            this.label_Pos.Location = new System.Drawing.Point(35, 100);
+            this.label_Pos.Name = "label_Pos";
+            this.label_Pos.Size = new System.Drawing.Size(0, 13);
+            this.label_Pos.TabIndex = 9;
             // 
             // MainForm
             // 
@@ -155,7 +107,6 @@
             this.ClientSize = new System.Drawing.Size(1145, 925);
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.mapCanvas);
-            this.Controls.Add(this.label1);
             this.Name = "MainForm";
             this.Text = "SharpRadar";
             ((System.ComponentModel.ISupportInitialize)(this.mapCanvas)).EndInit();
@@ -163,22 +114,16 @@
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             this.ResumeLayout(false);
-            this.PerformLayout();
 
         }
 
         #endregion
-
-        private System.Windows.Forms.Label label1;
         private System.Windows.Forms.PictureBox mapCanvas;
-        private System.Windows.Forms.Button button_up;
-        private System.Windows.Forms.Button button_left;
-        private System.Windows.Forms.Button button_right;
-        private System.Windows.Forms.Button button_down;
         private System.Windows.Forms.TrackBar trackBar_Zoom;
         private System.Windows.Forms.GroupBox groupBox1;
-        private System.Windows.Forms.Button button_testAddUnits;
-        private System.Windows.Forms.Label label_debug;
+        private System.Windows.Forms.Button button_Map;
+        private System.Windows.Forms.Label label_Pos;
+        private System.Windows.Forms.Label label_Map;
     }
 }
 
