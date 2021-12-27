@@ -257,11 +257,22 @@ namespace SharpRadar
         }
 
         /// <summary>
-        /// ToDo - Convert game positional values to UI Map Coordinates.
+        /// Convert game positional values to UI Map Coordinates.
         /// </summary>
         private MapPosition VectorToMapPos(Vector3 vector)
         {
-            return new MapPosition();
+            var zeroX = _currentMap.ConfigFile.X;
+            var zeroY = _currentMap.ConfigFile.Y;
+            var scale = _currentMap.ConfigFile.Scale;
+
+            var x = zeroX + (vector.X * scale);
+            var y = zeroY - (vector.Y * scale); // Invert 'Y' unity 0,0 bottom left, C# top left
+            return new MapPosition()
+            {
+                X = (int)x,
+                Y = (int)y,
+                Height = 0
+            };
         }
 
         /// <summary>

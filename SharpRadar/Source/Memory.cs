@@ -11,6 +11,8 @@ namespace SharpRadar
 {
     public class Memory : IDisposable
     {
+        private Random _rng = new Random();
+
         private readonly Thread _worker;
         private uint _pid; // Stores EscapeFromTarkov.exe PID
         private ulong _baseModule; // Stores UnityPlayer.DLL Module Base Entry
@@ -67,14 +69,14 @@ namespace SharpRadar
                             try
                             {
                                 GameLoop();
-                                Thread.Sleep(2200); // Tick
+                                Thread.Sleep(25); // Tick
                             }
                             catch (Exception ex)
                             {
                                 Debug.WriteLine(ex.ToString()); // for debug purposes
                             }
                         }
-                        Console.WriteLine("Raid ended!");
+                        Console.WriteLine("Raid ended!"); // ToDo - not working
                         _inGame = false;
                     }
                     else Thread.Sleep(5000);
@@ -200,87 +202,89 @@ namespace SharpRadar
             return 0;
         }
 
+        /// <summary>
+        /// *************** ToDo - Needs a lot of work, handling exceptions.
+        /// </summary>
         private void GameLoop()
         {
             int playerCnt = ReadMemoryInt(_rgtPlayers + 0x18);
-            Debug.WriteLine("Online Raid Player Count is: " + playerCnt);
             ulong listBase = AddressOf(_rgtPlayers + 0x0010);
             string currentPlayerGroupID = null; // Cache value to compare possible teammates
             for (uint i = 0; i < playerCnt; i++)
             {
-                ulong playerBase = AddressOf(listBase + 0x20 + (i * 0x8));
-                //var playerBones = AddressOf(playerBase + 0x530);
-                var playerProfile = AddressOf(playerBase + 0x4b0);
-                var playerId = AddressOf(playerProfile + 0x10);
-                var playerIdString = ReadMemoryUnityString(playerId); // Player's Personal ID ToDo Testing
-                var playerInfo = AddressOf(playerProfile + 0x28);
-                var playerGroupId = AddressOf(playerInfo + 0x18);
-                var playerGroupIdStr = ReadMemoryString(playerGroupId, 32); // Player's Group Affiliation ID ToDo testing
+                try
+                {
+                    ulong playerBase = AddressOf(listBase + 0x20 + (i * 0x8));
+                    var playerProfile = AddressOf(playerBase + 0x4b0);
+                    var playerId = AddressOf(playerProfile + 0x10);
+                    var playerIdString = ReadMemoryUnityString(playerId); // Player's Personal ID ToDo Testing
+                    var playerInfo = AddressOf(playerProfile + 0x28);
 
-                /// ToDo - Get Player Location Transform -> Position
-                /// 
-                // 0x598 : x
-                // 0x59C : y 
-                // 0x5A0 : z
-                // player + 0xA8] + 0x28] + 0x28] + 
-                // PlayerBody >> SkeletonRootJoint >> List<Transform> >> BoneMatrix >> HumanBase
-                //var playerTransform = AddressOf(new ulong[] { playerBase + 0xA8, 0x28, 0x28, 0x10, 0x20 });
-                var playerTransform = AddressOf(playerBase, new ulong[] { 0xA8, 0x28, 0x28, 0x10, 0x20 });
+                    // ToDo - Player Group ID's not working
+                    //var playerGroupId = AddressOf(playerInfo + 0x18);
+                    //var playerGroupIdStr = ReadMemoryUnityString(playerGroupId); // Player's Group Affiliation ID ToDo testing
+                    var playerGroupIdStr = $"Test{_rng.Next()}"; // Temp value while ToDo
 
-                var playerIsAlive = true; // ToDo get value if player is alive or not
-                var playerPos = GetPosition(new UIntPtr(playerTransform));
-                Debug.WriteLine($"{playerPos.X}, {playerPos.Y}, {playerPos.Z}");
-                if (i == 0) // Current player is always first
-                {
-                    currentPlayerGroupID = playerGroupIdStr;
-                }
-                if (this.Players.TryGetValue(playerIdString, out var player)) // Update existing object
-                {
-                    lock (player) // obtain lock
-                    {
-                        if (player.IsAlive) // Don't update already dead player
-                        {
-                            player.Position = playerPos;
-                            player.IsAlive = playerIsAlive;
-                        }
-                    }
-                }
-                else // Create new object
-                {
-                    var playerNickname = AddressOf(playerInfo + 0x10);
-                    var nicknameStr = ReadMemoryUnityString(playerNickname); // Now working!
-                    var playerSide = ReadMemoryInt(playerInfo + 0x58); // Scav, PMC, etc.
-                    var playerType = PlayerType.Default; // ToDo parse player type and assign proper value
+                    var playerTransform = AddressOf(playerBase, new ulong[] { 0xA8, 0x28, 0x28, 0x10, 0x20 });
+
+                    var playerIsAlive = true; // ToDo get value if player is alive or not
+                    var playerPos = GetPosition(new UIntPtr(playerTransform));
                     if (i == 0) // Current player is always first
                     {
-                        playerType = PlayerType.CurrentPlayer;
+                        currentPlayerGroupID = playerGroupIdStr;
                     }
-                    else
+                    if (this.Players.TryGetValue(playerIdString, out var player)) // Update existing object
                     {
-                        if (playerGroupIdStr == currentPlayerGroupID) playerType = PlayerType.Teammate;
-                        else
+                        lock (player) // obtain lock
                         {
-                            if (playerSide == 0x1 || playerSide == 0x2) playerType = PlayerType.PMC;
-                            else if (playerSide == 0x4)
+                            if (player.IsAlive) // Don't update already dead player
                             {
-                                var regDate = ReadMemoryInt(playerInfo + 0x5C); // Bots wont have 'reg date'
-                                if (regDate == 0) playerType = PlayerType.AIScav;
-                                else playerType = PlayerType.PlayerScav;
+                                player.Position = playerPos;
+                                player.IsAlive = playerIsAlive;
                             }
                         }
                     }
-                    Debug.WriteLine($"{nicknameStr} {playerIdString} ({playerType}) (grp: {playerGroupIdStr}) entered the game world.");
-                    this.Players.TryAdd(playerIdString, new Player(
-                        nicknameStr, // Player's name
-                        playerGroupIdStr, // Player's Group ID
-                        playerType) // Player's Type
+                    else // Create new object
                     {
-                        Position = playerPos
-                    });
+                        var playerNickname = AddressOf(playerInfo + 0x10);
+                        var nicknameStr = ReadMemoryUnityString(playerNickname); // Now working!
+                        var playerSide = ReadMemoryInt(playerInfo + 0x58); // Scav, PMC, etc.
+                        var playerType = PlayerType.Default; // ToDo parse player type and assign proper value
+                        if (i == 0) // Current player is always first
+                        {
+                            playerType = PlayerType.CurrentPlayer;
+                        }
+                        else
+                        {
+                            if (playerGroupIdStr == currentPlayerGroupID) playerType = PlayerType.Teammate;
+                            else
+                            {
+                                if (playerSide == 0x1 || playerSide == 0x2) playerType = PlayerType.PMC;
+                                else if (playerSide == 0x4)
+                                {
+                                    var regDate = ReadMemoryInt(playerInfo + 0x5C); // Bots wont have 'reg date'
+                                    if (regDate == 0) playerType = PlayerType.AIScav;
+                                    else playerType = PlayerType.PlayerScav;
+                                }
+                            }
+                        }
+                        Debug.WriteLine($"{nicknameStr} {playerIdString} ({playerType}) (grp: {playerGroupIdStr}) entered the game world.");
+                        this.Players.TryAdd(playerIdString, new Player(
+                            nicknameStr, // Player's name
+                            playerGroupIdStr, // Player's Group ID
+                            playerType) // Player's Type
+                        {
+                            Position = playerPos
+                        });
+                    }
                 }
+                catch { }
             }
         }
 
+        /// <summary>
+        /// ToDo - Cleanup
+        /// </summary>
         private unsafe Vector3 GetPosition(UIntPtr transform)
         {
             ulong pMatricesBuf = 0;
@@ -321,6 +325,10 @@ namespace SharpRadar
 
             return new Vector3(result.X, result.Z, result.Y);
         }
+
+        /// <summary>
+        /// ToDo - Cleanup
+        /// </summary>
         private unsafe Tuple<ulong, ulong, int> GetPositionOffset(UIntPtr transform)
         {
             UIntPtr transform_internal = GetUintPtr(transform, new int[] { 0x10 });
