@@ -1,5 +1,5 @@
 # RadarBase
-This is not completed and has a ***LOT*** of bugs still. I was able to get this working on Customs and completed a raid with mostly correct positions.
+This is not completed and has a ***LOT*** of bugs still. I was able to get this working on Customs and completed several raids with reasonable stability.
 
 ### Instructions
 1. You need a DMA Device (Screamer, Raptor DMA,etc.) installed on your game PC with (hopefully) good/safe firmware. Don't ask me how.
@@ -8,7 +8,7 @@ This is not completed and has a ***LOT*** of bugs still. I was able to get this 
 4. Run the program on your **2nd PC** that has the USB Cable plugged into. Click the Map button to cycle through maps if you need.
 
 ### Map JSON Info
-Format your JSON as above. The X,Y values are the pixel coordinates on your .PNG image at game location 0,0,0 (this can be found on the right hand side of the window). You may need to play with the scale value to find the right setting depending on your map.
+Format your JSON as below. The X,Y values are the pixel coordinates on your .PNG image at game location 0,0,0 (this can be found on the right hand side of the window). You may need to play with the scale value to find the right setting depending on your map.
 
 I used the below JSON Values for the Customs map in the screenshot below:
 ```
