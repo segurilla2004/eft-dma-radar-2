@@ -235,7 +235,6 @@ namespace SharpRadar
                     if (i == 0) // Current player is always first
                     {
                         currentPlayerGroupID = playerGroupIdStr;
-                        Debug.WriteLine($"Player {i} direction: {playerDirection}");
                     }
                     if (this.Players.TryGetValue(playerIdString, out var player)) // Update existing object
                     {
@@ -284,7 +283,7 @@ namespace SharpRadar
                         });
                     }
                 }
-                catch (Exception ex){ Debug.WriteLine(ex.ToString()); }
+                catch { }
             }
         }
 
