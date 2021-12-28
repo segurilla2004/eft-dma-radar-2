@@ -216,7 +216,8 @@ namespace SharpRadar
                 try
                 {
                     ulong playerBase = AddressOf(listBase + 0x20 + (i * 0x8));
-                    var playerProfile = AddressOf(playerBase + 0x4b0);
+                    var movementContext = AddressOf(playerBase + 0x40);
+                    var playerProfile = AddressOf(playerBase + 0x4B0);
                     var playerId = AddressOf(playerProfile + 0x10);
                     var playerIdString = ReadMemoryUnityString(playerId); // Player's Personal ID ToDo Testing
                     var playerInfo = AddressOf(playerProfile + 0x28);
@@ -230,9 +231,11 @@ namespace SharpRadar
 
                     var playerIsAlive = true; // ToDo get value if player is alive or not
                     var playerPos = GetPosition(playerTransform);
+                    var playerDirection = GetDirection(movementContext);
                     if (i == 0) // Current player is always first
                     {
                         currentPlayerGroupID = playerGroupIdStr;
+                        Debug.WriteLine($"Player {i} direction: {playerDirection}");
                     }
                     if (this.Players.TryGetValue(playerIdString, out var player)) // Update existing object
                     {
@@ -241,6 +244,7 @@ namespace SharpRadar
                             if (player.IsAlive) // Don't update already dead player
                             {
                                 player.Position = playerPos;
+                                player.Direction = playerDirection;
                                 player.IsAlive = playerIsAlive;
                             }
                         }
@@ -275,12 +279,23 @@ namespace SharpRadar
                             playerGroupIdStr, // Player's Group ID
                             playerType) // Player's Type
                         {
-                            Position = playerPos
+                            Position = playerPos,
+                            Direction = playerDirection
                         });
                     }
                 }
-                catch { }
+                catch (Exception ex){ Debug.WriteLine(ex.ToString()); }
             }
+        }
+
+        public float GetDirection(ulong movementContext)
+        {
+            float deg = ReadMemoryFloat(movementContext + 0x22C);
+            if (deg < 0)
+            {
+                return 360f + deg;
+            }
+            return deg;
         }
 
         /// <summary>

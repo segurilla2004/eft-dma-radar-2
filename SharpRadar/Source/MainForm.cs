@@ -201,9 +201,11 @@ namespace SharpRadar
             })
             {
                 MapPosition currentPlayerPos;
+                double currentPlayerDirection;
                 lock (_currentPlayer) // Obtain object lock
                 {
                     currentPlayerPos = VectorToMapPos(_currentPlayer.Position);
+                    currentPlayerDirection = Deg2Rad(_currentPlayer.Direction);
                     label_Pos.Text = $"X: {_currentPlayer.Position.X}\r\nY: {_currentPlayer.Position.Y}\r\nZ: {_currentPlayer.Position.Z}";
                 }
                 // Get map frame bounds (Based on Zoom Level, centered on Current Player)
@@ -211,9 +213,12 @@ namespace SharpRadar
                 using (var gr = Graphics.FromImage(render)) // Get fresh frame
                 {
                     // Draw Current Player
-                    gr.DrawEllipse(grn, new Rectangle(currentPlayerPos.GetPlayerCirclePoint(strokeLength), new Size(strokeLength * 2, strokeLength * 2)));
-                    gr.DrawLine(grn, new Point(currentPlayerPos.X - strokeLength, currentPlayerPos.Y), new Point(currentPlayerPos.X + strokeLength, currentPlayerPos.Y));
-                    gr.DrawLine(grn, new Point(currentPlayerPos.X, currentPlayerPos.Y - strokeLength), new Point(currentPlayerPos.X, currentPlayerPos.Y + strokeLength));
+                    {
+                        gr.DrawEllipse(grn, new Rectangle(currentPlayerPos.GetPlayerCirclePoint(strokeLength), new Size(strokeLength * 2, strokeLength * 2)));
+                        Point point1 = new Point(currentPlayerPos.X, currentPlayerPos.Y);
+                        Point point2 = new Point((int)(currentPlayerPos.X + Math.Cos(currentPlayerDirection) * trackBar_AimLength.Value), (int)(currentPlayerPos.Y + Math.Sin(currentPlayerDirection) * trackBar_AimLength.Value));
+                        gr.DrawLine(grn, point1, point2);
+                    }
                     // Draw Other Players
                     foreach (KeyValuePair<string, Player> player in _memory.Players) // Draw PMCs
                     {
@@ -227,22 +232,31 @@ namespace SharpRadar
                                 && playerPos.Y <= bounds.Bottom)
                             {
                                 Pen pen;
+                                var playerDirection = Deg2Rad(player.Value.Direction);
+                                var aimLength = trackBar_EnemyAim.Value;
                                 if (player.Value.IsAlive is false)
                                 { // Draw 'X'
                                     gr.DrawLine(blk, new Point(playerPos.X - strokeLength / 2, playerPos.Y + strokeLength / 2), new Point(playerPos.X + strokeLength / 2, playerPos.Y - strokeLength / 2));
                                     gr.DrawLine(blk, new Point(playerPos.X - strokeLength / 2, playerPos.Y - strokeLength / 2), new Point(playerPos.X + strokeLength / 2, playerPos.Y + strokeLength / 2));
                                     continue;
                                 }
-                                else if (player.Value.Type is PlayerType.Teammate) pen = ltGrn;
+                                else if (player.Value.Type is PlayerType.Teammate)
+                                {
+                                    pen = ltGrn;
+                                    aimLength = trackBar_AimLength.Value; // Allies use player's aim length
+                                }
                                 else if (player.Value.Type is PlayerType.PMC) pen = red;
                                 else if (player.Value.Type is PlayerType.PlayerScav) pen = wht;
                                 else if (player.Value.Type is PlayerType.AIBoss) pen = vlt;
                                 else if (player.Value.Type is PlayerType.AIScav) pen = ylw;
                                 else pen = red; // Default
-                                // Draw '+'
-                                gr.DrawString(player.Value.Name, drawFont, drawBrush, playerPos.GetNamePoint(fontSize));
-                                gr.DrawLine(pen, new Point(playerPos.X - strokeLength, playerPos.Y), new Point(playerPos.X + strokeLength, playerPos.Y));
-                                gr.DrawLine(pen, new Point(playerPos.X, playerPos.Y - strokeLength), new Point(playerPos.X, playerPos.Y + strokeLength));
+                                {
+                                    gr.DrawString(player.Value.Name, drawFont, drawBrush, playerPos.GetNamePoint(fontSize));
+                                    gr.DrawEllipse(pen, new Rectangle(playerPos.GetPlayerCirclePoint(strokeLength), new Size((int)(strokeLength * 1.5), (int)(strokeLength * 1.5)))); // smaller circle
+                                    Point point1 = new Point(playerPos.X, playerPos.Y);
+                                    Point point2 = new Point((int)(playerPos.X + Math.Cos(playerDirection) * aimLength), (int)(playerPos.Y + Math.Sin(playerDirection) * aimLength));
+                                    gr.DrawLine(pen, point1, point2);
+                                }
                             }
                         }
                     }
@@ -250,6 +264,12 @@ namespace SharpRadar
                 }
                 return CropImage(render, bounds); // Return the portion of the map to be rendered based on Zoom Level
             }
+        }
+
+        private static double Deg2Rad(float deg)
+        {
+            deg = deg - 90; // Degrees offset needed for game
+            return (Math.PI / 180) * deg;
         }
 
         /// <summary>

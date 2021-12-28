@@ -34,6 +34,7 @@ namespace SharpRadar
         public readonly string GroupID;
         public bool IsAlive = true;
         public Vector3 Position = new Vector3(0, 0, 0);
+        public float Direction = 0f;
 
         public Player(string name, string groupId, PlayerType type)
         {
