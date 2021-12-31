@@ -1,8 +1,6 @@
 # RadarBase
 This is not completed and has a ***LOT*** of bugs still. I was able to get this working on Customs and completed several raids with reasonable stability.
 
-**NOTICE:** This project is on hold since it's not a priority for me. This is working as of 12/28/21, but in the future offsets may need to be updated. Feel free to fork this repo.
-
 ### Instructions
 1. You need a DMA Device (Screamer, Raptor DMA,etc.) installed on your game PC with (hopefully) good/safe firmware. Don't ask me how.
 2. Build/compile the app for Release x64. Copy the .DLL files in the Resources folder to your build folder.
