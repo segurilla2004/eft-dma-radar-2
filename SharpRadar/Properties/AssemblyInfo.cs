@@ -8,9 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("SharpRadar")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("University of Minnesota")]
+[assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("SharpRadar")]
-[assembly: AssemblyCopyright("Copyright © University of Minnesota 2021")]
+[assembly: AssemblyCopyright("")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
