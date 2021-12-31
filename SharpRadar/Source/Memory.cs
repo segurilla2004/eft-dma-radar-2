@@ -62,9 +62,7 @@ namespace SharpRadar
                     _game.WaitForGame();
                     while (Heartbeat() && _game.InGame)
                     {
-                        var sw = new DebugStopwatch("Game Loop");
                         _game.GameLoop();
-                        sw.Stop();
                     }
                 }
                 Console.WriteLine("Game is no longer running... Attempting to restart...");
