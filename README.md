@@ -1,6 +1,10 @@
 # RadarBase
 This is not completed and has a ***LOT*** of bugs still. I was able to get this working on Customs and completed several raids with reasonable stability.
 
+### Known Issues
+- Game Loop is buggy, particularly after additional players join the raid.
+- May be an issue with the pointer chain on the Bones Pointer in Player.cs , GetPosition() doesn't work on a small number of players.
+
 ### Instructions
 1. You need a DMA Device (Screamer, Raptor DMA,etc.) installed on your game PC with (hopefully) good/safe firmware. Don't ask me how.
 2. Build/compile the app for Release x64. Copy the .DLL files in the Resources folder to your build folder.
