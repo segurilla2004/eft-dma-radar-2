@@ -24,23 +24,23 @@ namespace SharpRadar
         }
     }
 
-    /// <summary>
-    /// Class containing Game Player Data. Use lock() when accessing instances of this class.
-    /// </summary>
-    public class Player
+    public class DebugStopwatch
     {
-        public readonly string Name;
-        public readonly PlayerType Type;
-        public readonly string GroupID;
-        public bool IsAlive = true;
-        public Vector3 Position = new Vector3(0, 0, 0);
-        public float Direction = 0f;
+        private readonly Stopwatch _sw;
+        private readonly string _name;
 
-        public Player(string name, string groupId, PlayerType type)
+        public DebugStopwatch(string name = null)
         {
-            Name = name;
-            GroupID = groupId;
-            Type = type;
+            _name = name;
+            _sw = new Stopwatch();
+            _sw.Start();
+        }
+
+        public void Stop()
+        {
+            _sw.Stop();
+            TimeSpan ts = _sw.Elapsed;
+            Debug.WriteLine($"{_name} Stopwatch Runtime: {ts.Milliseconds}ms");
         }
     }
 

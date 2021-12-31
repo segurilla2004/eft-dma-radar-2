@@ -26,14 +26,13 @@ namespace SharpRadar
         private float _zoom = 1.0f;
         private int _lastZoom = 0;
         private const int _maxZoom = 3500;
-        private Player _currentPlayer = new Player( // Keep track of current player (for Map centering)
-            "player",
-            "0",
-            PlayerType.CurrentPlayer) // Default Starting Values
+        private Player CurrentPlayer
         {
-            Position = new Vector3(0, 0, 0)
-        };
-        private bool _startup = false; // Game startup flag
+            get
+            {
+                return _memory.Players.FirstOrDefault(x => x.Value.Type is PlayerType.CurrentPlayer).Value;
+            }
+        }
 
 
         /// <summary>
@@ -103,32 +102,6 @@ namespace SharpRadar
         }
 
         /// <summary>
-        /// Check if loaded into a raid, set current player info.
-        /// </summary>
-        private bool IsInRaid()
-        {
-            bool inGame = _memory.InGame; // Cache bool read
-            if (!_startup && inGame)
-            {
-                foreach (KeyValuePair<string,Player> player in _memory.Players)
-                {
-                    lock (player.Value) // Obtain object lock
-                    {
-                        if (player.Value.Type is PlayerType.CurrentPlayer) // Determine current player
-                        {
-                            _currentPlayer = player.Value;
-                            _startup = true;
-                            break;
-                        }
-                    }
-                }
-            }
-            else if (!inGame) _startup = false;
-
-            return inGame;
-        }
-
-        /// <summary>
         /// Control handles map zoom
         /// </summary>
         private void trackBar_Zoom_Scroll(object sender, EventArgs e)
@@ -145,7 +118,7 @@ namespace SharpRadar
         {
             lock (_renderLock)
             {
-                if (IsInRaid())
+                if (_memory.InGame && CurrentPlayer != null)
                 {
                     var render = GetRender(); // Construct next frame
                     mapCanvas.Image = render; // Render next frame
@@ -202,11 +175,11 @@ namespace SharpRadar
             {
                 MapPosition currentPlayerPos;
                 double currentPlayerDirection;
-                lock (_currentPlayer) // Obtain object lock
+                lock (CurrentPlayer) // Obtain object lock
                 {
-                    currentPlayerPos = VectorToMapPos(_currentPlayer.Position);
-                    currentPlayerDirection = Deg2Rad(_currentPlayer.Direction);
-                    label_Pos.Text = $"X: {_currentPlayer.Position.X}\r\nY: {_currentPlayer.Position.Y}\r\nZ: {_currentPlayer.Position.Z}";
+                    currentPlayerPos = VectorToMapPos(CurrentPlayer.Position);
+                    currentPlayerDirection = Deg2Rad(CurrentPlayer.Direction);
+                    label_Pos.Text = $"X: {CurrentPlayer.Position.X}\r\nY: {CurrentPlayer.Position.Y}\r\nZ: {CurrentPlayer.Position.Z}";
                 }
                 // Get map frame bounds (Based on Zoom Level, centered on Current Player)
                 var bounds = new Rectangle(currentPlayerPos.X - zoom / 2, currentPlayerPos.Y - zoom / 2, zoom, zoom);
@@ -251,8 +224,9 @@ namespace SharpRadar
                                 else if (player.Value.Type is PlayerType.AIScav) pen = ylw;
                                 else pen = red; // Default
                                 {
-                                    gr.DrawString(player.Value.Name, drawFont, drawBrush, playerPos.GetNamePoint(fontSize));
-                                    gr.DrawEllipse(pen, new Rectangle(playerPos.GetPlayerCirclePoint(strokeLength), new Size((int)(strokeLength * 1.5), (int)(strokeLength * 1.5)))); // smaller circle
+                                    var height = playerPos.Height - currentPlayerPos.Height;
+                                    gr.DrawString($"{player.Value.Name} ({player.Value.Health})\nH: {height}", drawFont, drawBrush, playerPos.GetNamePoint(fontSize));
+                                    gr.DrawEllipse(pen, new Rectangle(playerPos.GetPlayerCirclePoint(strokeLength / 2), new Size((int)(strokeLength), (int)(strokeLength)))); // smaller circle
                                     Point point1 = new Point(playerPos.X, playerPos.Y);
                                     Point point2 = new Point((int)(playerPos.X + Math.Cos(playerDirection) * aimLength), (int)(playerPos.Y + Math.Sin(playerDirection) * aimLength));
                                     gr.DrawLine(pen, point1, point2);
@@ -300,7 +274,7 @@ namespace SharpRadar
             {
                 X = (int)x,
                 Y = (int)y,
-                Height = 0
+                Height = (int)vector.Z
             };
         }
 
