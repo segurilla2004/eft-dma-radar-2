@@ -13,7 +13,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace SharpRadar
+namespace eft_dma_radar
 {
     public partial class MainForm : Form
     {
@@ -46,7 +46,6 @@ namespace SharpRadar
             LoadMaps();
             this.DoubleBuffered = true; // Prevent flickering
             this.mapCanvas.Paint += mapCanvas_OnPaint;
-            this.Resize += MainForm_Resize;
             this.Shown += MainForm_Shown;
         }
 
@@ -54,7 +53,7 @@ namespace SharpRadar
         {
             while (true)
             {
-                await Task.Delay(30);
+                await Task.Delay(5);
                 mapCanvas.Invalidate();
             }
         }
@@ -90,28 +89,6 @@ namespace SharpRadar
         }
 
         /// <summary>
-        /// Handle window resizing
-        /// </summary>
-        private void MainForm_Resize(object sender, System.EventArgs e)
-        {
-            lock (_renderLock)
-            {
-                mapCanvas.Size = new Size(this.Height, this.Height); // Keep square aspect ratio
-                mapCanvas.Location = new Point(0, 0); // Keep in top left corner
-            }
-        }
-
-        /// <summary>
-        /// Control handles map zoom
-        /// </summary>
-        private void trackBar_Zoom_Scroll(object sender, EventArgs e)
-        {
-            int amtChanged = trackBar_Zoom.Value - _lastZoom;
-            _lastZoom = trackBar_Zoom.Value;
-            _zoom -= (.01f) * (amtChanged);
-        }
-
-        /// <summary>
         /// Draw/Render on Map Canvas
         /// </summary>
         private void mapCanvas_OnPaint(object sender, PaintEventArgs e)
@@ -124,7 +101,7 @@ namespace SharpRadar
                     mapCanvas.Image = render; // Render next frame
 
                     // Cleanup Resources
-                    _currentRender.Dispose(); // Dispose previous frame
+                    Recycler.Bitmaps.Add(_currentRender); // Queue previous frame for disposal
                     _currentRender = render; // Store reference of current frame
                 }
             }
@@ -136,12 +113,13 @@ namespace SharpRadar
         private Bitmap GetRender()
         {
             int zoom = (int)(_maxZoom * _zoom); // Get zoom level
+            double aspect = mapCanvas.Width / mapCanvas.Height;
             int strokeLength = zoom / 125; // Lower constant = longer stroke
             int fontSize = zoom / 100;
             if (strokeLength < 5) strokeLength = 5; // Min value
             int strokeWidth = zoom / 300; // Lower constant = wider stroke
             if (strokeWidth < 4) strokeWidth = 4; // Min value
-            using (var render = (Bitmap)_currentMap.MapFile.Clone()) // Get a fresh map to draw on
+            var render = (Bitmap)_currentMap.MapFile.Clone(); // Get a fresh map to draw on
             using (var drawFont = new Font("Arial", fontSize, FontStyle.Bold))
             using (var drawBrush = new SolidBrush(Color.Black))
             using (var grn = new Pen(Color.DarkGreen)
@@ -174,15 +152,17 @@ namespace SharpRadar
             })
             {
                 MapPosition currentPlayerPos;
+                Vector3 currentPlayerRawPos;
                 double currentPlayerDirection;
                 lock (CurrentPlayer) // Obtain object lock
                 {
-                    currentPlayerPos = VectorToMapPos(CurrentPlayer.Position);
+                    currentPlayerRawPos = CurrentPlayer.Position;
                     currentPlayerDirection = Deg2Rad(CurrentPlayer.Direction);
                     label_Pos.Text = $"X: {CurrentPlayer.Position.X}\r\nY: {CurrentPlayer.Position.Y}\r\nZ: {CurrentPlayer.Position.Z}";
                 }
+                currentPlayerPos = VectorToMapPos(currentPlayerRawPos);
                 // Get map frame bounds (Based on Zoom Level, centered on Current Player)
-                var bounds = new Rectangle(currentPlayerPos.X - zoom / 2, currentPlayerPos.Y - zoom / 2, zoom, zoom);
+                var bounds = new Rectangle(currentPlayerPos.X - (int)(zoom * aspect) / 2, currentPlayerPos.Y - zoom / 2, (int)(zoom * aspect), zoom);
                 using (var gr = Graphics.FromImage(render)) // Get fresh frame
                 {
                     // Draw Current Player
@@ -225,7 +205,8 @@ namespace SharpRadar
                                 else pen = red; // Default
                                 {
                                     var height = playerPos.Height - currentPlayerPos.Height;
-                                    gr.DrawString($"{player.Value.Name} ({player.Value.Health})\nH: {height}", drawFont, drawBrush, playerPos.GetNamePoint(fontSize));
+                                    var dist = (int)(Math.Sqrt((Math.Pow(currentPlayerRawPos.X - player.Value.Position.X, 2) + Math.Pow(currentPlayerRawPos.Y - player.Value.Position.Y, 2))));
+                                    gr.DrawString($"{player.Value.Name} ({player.Value.Health})\nH: {height} D: {dist}", drawFont, drawBrush, playerPos.GetNamePoint(fontSize));
                                     gr.DrawEllipse(pen, new Rectangle(playerPos.GetPlayerCirclePoint(strokeLength / 2), new Size((int)(strokeLength), (int)(strokeLength)))); // smaller circle
                                     Point point1 = new Point(playerPos.X, playerPos.Y);
                                     Point point2 = new Point((int)(playerPos.X + Math.Cos(playerDirection) * aimLength), (int)(playerPos.Y + Math.Sin(playerDirection) * aimLength));
@@ -251,11 +232,18 @@ namespace SharpRadar
         /// </summary>
         private Bitmap CropImage(Bitmap source, Rectangle section)
         {
-            var bitmap = new Bitmap(section.Width, section.Height);
-            using (var gr = Graphics.FromImage(bitmap))
+            try
             {
-                gr.DrawImage(source, 0, 0, section, GraphicsUnit.Pixel);
-                return bitmap;
+                var bitmap = new Bitmap(section.Width, section.Height);
+                using (var gr = Graphics.FromImage(bitmap))
+                {
+                    gr.DrawImage(source, 0, 0, section, GraphicsUnit.Pixel);
+                    return bitmap;
+                }
+            }
+            finally
+            {
+                Recycler.Bitmaps.Add(source); // Queue for disposal
             }
         }
 
@@ -278,9 +266,14 @@ namespace SharpRadar
             };
         }
 
-        /// <summary>
-        /// Toggle current map selection.
-        /// </summary>
+
+        private void trackBar_Zoom_Scroll(object sender, EventArgs e)
+        {
+            int amtChanged = trackBar_Zoom.Value - _lastZoom;
+            _lastZoom = trackBar_Zoom.Value;
+            _zoom -= (.01f) * (amtChanged);
+        }
+
         private void button_Map_Click(object sender, EventArgs e)
         {
             if (_mapIndex == _allMaps.Count - 1) _mapIndex = 0; // Start over when end of maps reached

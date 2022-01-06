@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading;
 using vmmsharp;
 
-namespace SharpRadar
+namespace eft_dma_radar
 {
     public class Memory : IDisposable
     {
@@ -59,18 +59,34 @@ namespace SharpRadar
                 while (Heartbeat())
                 {
                     _game = new Game(this);
-                    _game.WaitForGame();
-                    while (Heartbeat() && _game.InGame)
+                    try
                     {
-                        _game.GameLoop();
+                        _game.WaitForGame();
+                        while (_game.InGame)
+                        {
+                            _game.GameLoop();
+                        }
+                    }
+                    catch
+                    {
+                        if (Heartbeat())
+                        {
+                            Console.WriteLine("Unhandled exception in game loop - restarting...");
+                            continue;
+                        }
+                        else
+                        {
+                            Console.WriteLine("Game is no longer running!");
+                            break;
+                        }
                     }
                 }
-                Console.WriteLine("Game is no longer running... Attempting to restart...");
             }
         }
 
         private bool GetPid()
         {
+            if (_disposed) throw new ObjectDisposedException("Memory Module has been disposed!");
             try
             {
                 vmm.PidGetFromName("EscapeFromTarkov.exe", out _pid);
@@ -90,6 +106,7 @@ namespace SharpRadar
 
         private bool GetModuleBase()
         {
+            if (_disposed) throw new ObjectDisposedException("Memory Module has been disposed!");
             try
             {
                 BaseModule = vmm.ProcessGetModuleBase(_pid, "UnityPlayer.dll");
@@ -114,8 +131,9 @@ namespace SharpRadar
         /// <summary>
         /// Copy 'n' bytes to unmanaged memory. Caller is responsible for freeing memory.
         /// </summary>
-        public unsafe void ReadMemoryToBuffer(ulong addr, IntPtr bufPtr, int size)
+        public unsafe void ReadBuffer(ulong addr, IntPtr bufPtr, int size)
         {
+            if (_disposed) throw new ObjectDisposedException("Memory Module has been disposed!");
             Marshal.Copy(vmm.MemRead(_pid, addr, (uint)size, vmm.FLAG_NOCACHE)
                 , 0, bufPtr, size);
         }
@@ -123,100 +141,114 @@ namespace SharpRadar
         /// <summary>
         /// Read a chain of pointers.
         /// </summary>
-        public ulong AddressOf(ulong ptr, ulong[] offsets, uint flag = 0x0001) // Cache = 0x00 NoCache = 0x0001
+        public ulong ReadPtrChain(ulong ptr, uint[] offsets)
         {
-            ulong addr = AddressOf(ptr + offsets[0], flag);
+            if (_disposed) throw new ObjectDisposedException("Memory Module has been disposed!");
+            ulong addr = 0;
+            try { addr = ReadPtr(ptr + offsets[0]); }
+            catch (Exception ex) { throw new DMAException($"ERROR reading pointer chain at index 0, addr 0x{ptr.ToString("X")} + 0x{offsets[0].ToString("X")}", ex); }
             for (int i = 1; i < offsets.Length; i++)
             {
-                addr = AddressOf(addr + offsets[i], flag);
+                try { addr = ReadPtr(addr + offsets[i]); }
+                catch (Exception ex) { throw new DMAException($"ERROR reading pointer chain at index {i}, addr 0x{addr.ToString("X")} + 0x{offsets[i].ToString("X")}", ex); }
             }
             return addr;
         }
         /// <summary>
         /// Resolves a pointer and returns the memory address it points to.
         /// </summary>
-        public ulong AddressOf(ulong ptr, uint flag = 0x0001) => ReadMemoryUlong(ptr, flag);
-        public ulong ReadMemoryUlong(ulong addr, uint flag) // Cache = 0x00 NoCache = 0x0001
+        public ulong ReadPtr(ulong ptr) => ReadUlong(ptr);
+
+
+        public ulong ReadUlong(ulong addr)
         {
+            if (_disposed) throw new ObjectDisposedException("Memory Module has been disposed!");
             try
             {
-                return BitConverter.ToUInt64(vmm.MemRead(_pid, addr, 8, flag), 0);
+                return BitConverter.ToUInt64(vmm.MemRead(_pid, addr, 8, vmm.FLAG_NOCACHE), 0);
             }
             catch (Exception ex)
             {
-                throw new DMAException($"ERROR reading memory at 0x{addr.ToString("X")}", ex);
+                throw new DMAException($"ERROR reading UInt64 at 0x{addr.ToString("X")}", ex);
             }
         }
 
-        public long ReadMemoryLong(ulong addr) // read 8 bytes (int64)
+        public long ReadLong(ulong addr) // read 8 bytes (int64)
         {
+            if (_disposed) throw new ObjectDisposedException("Memory Module has been disposed!");
             try
             {
                 return BitConverter.ToInt64(vmm.MemRead(_pid, addr, 8, vmm.FLAG_NOCACHE), 0);
             }
             catch (Exception ex)
             {
-                throw new DMAException($"ERROR reading memory at 0x{addr.ToString("X")}", ex);
+                throw new DMAException($"ERROR reading Int64 at 0x{addr.ToString("X")}", ex);
             }
         }
-        public int ReadMemoryInt(ulong addr) // read 4 bytes (int32)
+        public int ReadInt(ulong addr) // read 4 bytes (int32)
         {
+            if (_disposed) throw new ObjectDisposedException("Memory Module has been disposed!");
             try
             {
                 return BitConverter.ToInt32(vmm.MemRead(_pid, addr, 4, vmm.FLAG_NOCACHE), 0);
             }
             catch (Exception ex)
             {
-                throw new DMAException($"ERROR reading memory at 0x{addr.ToString("X")}", ex);
+                throw new DMAException($"ERROR reading Int32 at 0x{addr.ToString("X")}", ex);
             }
         }
-        public uint ReadMemoryUint(ulong addr) // read 4 bytes (uint32)
+        public uint ReadUint(ulong addr) // read 4 bytes (uint32)
         {
+            if (_disposed) throw new ObjectDisposedException("Memory Module has been disposed!");
             try
             {
                 return BitConverter.ToUInt32(vmm.MemRead(_pid, addr, 4, vmm.FLAG_NOCACHE), 0);
             }
             catch (Exception ex)
             {
-                throw new DMAException($"ERROR reading memory at 0x{addr.ToString("X")}", ex);
+                throw new DMAException($"ERROR reading Uint32 at 0x{addr.ToString("X")}", ex);
             }
         }
-        public float ReadMemoryFloat(ulong addr) // read 4 bytes (float)
+        public float ReadFloat(ulong addr) // read 4 bytes (float)
         {
+            if (_disposed) throw new ObjectDisposedException("Memory Module has been disposed!");
             try
             {
                 return BitConverter.ToSingle(vmm.MemRead(_pid, addr, 4, vmm.FLAG_NOCACHE), 0);
             }
             catch (Exception ex)
             {
-                throw new DMAException($"ERROR reading memory at 0x{addr.ToString("X")}", ex);
+                throw new DMAException($"ERROR reading float at 0x{addr.ToString("X")}", ex);
             }
         }
-        public double ReadMemoryDouble(ulong addr) // read 8 bytes (double)
+        public double ReadDouble(ulong addr) // read 8 bytes (double)
         {
+            if (_disposed) throw new ObjectDisposedException("Memory Module has been disposed!");
             try
             {
                 return BitConverter.ToDouble(vmm.MemRead(_pid, addr, 8, vmm.FLAG_NOCACHE), 0);
             }
             catch (Exception ex)
             {
-                throw new DMAException($"ERROR reading memory at 0x{addr.ToString("X")}", ex);
+                throw new DMAException($"ERROR reading double at 0x{addr.ToString("X")}", ex);
             }
         }
-        public bool ReadMemoryBool(ulong addr) // read 1 byte (bool)
+        public bool ReadBool(ulong addr) // read 1 byte (bool)
         {
+            if (_disposed) throw new ObjectDisposedException("Memory Module has been disposed!");
             try
             {
                 return BitConverter.ToBoolean(vmm.MemRead(_pid, addr, 1, vmm.FLAG_NOCACHE), 0);
             }
             catch (Exception ex)
             {
-                throw new DMAException($"ERROR reading memory at 0x{addr.ToString("X")}", ex);
+                throw new DMAException($"ERROR reading boolean at 0x{addr.ToString("X")}", ex);
             }
         }
 
-        public T ReadMemoryStruct<T>(ulong addr) // Read structure from memory location
+        public T ReadStruct<T>(ulong addr) // Read structure from memory location
         {
+            if (_disposed) throw new ObjectDisposedException("Memory Module has been disposed!");
             int size = Marshal.SizeOf(typeof(T));
             var mem = Marshal.AllocHGlobal(size); // alloc mem
             try
@@ -229,7 +261,7 @@ namespace SharpRadar
             }
             catch (Exception ex)
             {
-                throw new DMAException($"ERROR reading memory at 0x{addr.ToString("X")}", ex);
+                throw new DMAException($"ERROR reading struct at 0x{addr.ToString("X")}", ex);
             }
             finally
             {
@@ -239,8 +271,9 @@ namespace SharpRadar
         /// <summary>
         /// Read 'n' bytes at specified address and convert directly to a string.
         /// </summary>
-        public string ReadMemoryString(ulong addr, uint size) // read n bytes (string)
+        public string ReadString(ulong addr, uint size) // read n bytes (string)
         {
+            if (_disposed) throw new ObjectDisposedException("Memory Module has been disposed!");
             try
             {
                 return Encoding.Default.GetString(
@@ -248,24 +281,25 @@ namespace SharpRadar
             }
             catch (Exception ex)
             {
-                throw new DMAException($"ERROR reading memory at 0x{addr.ToString("X")}", ex);
+                throw new DMAException($"ERROR reading string at 0x{addr.ToString("X")}", ex);
             }
         }
 
         /// <summary>
         /// Read UnityEngineString structure
         /// </summary>
-        public string ReadMemoryUnityString(ulong addr, uint flag = 0x0001)
+        public string ReadUnityString(ulong addr)
         {
+            if (_disposed) throw new ObjectDisposedException("Memory Module has been disposed!");
             try
             {
-                var length = (uint)ReadMemoryInt(addr + 0x10);
+                var length = (uint)ReadInt(addr + 0x10);
                 return Encoding.Unicode.GetString(
-                    vmm.MemRead(_pid, addr + 0x14, length * 2, flag));
+                    vmm.MemRead(_pid, addr + 0x14, length * 2, vmm.FLAG_NOCACHE));
             }
             catch (Exception ex)
             {
-                throw new DMAException($"ERROR reading memory at 0x{addr.ToString("X")}", ex);
+                throw new DMAException($"ERROR reading UnityString at 0x{addr.ToString("X")}", ex);
             }
         }
 
@@ -280,7 +314,7 @@ namespace SharpRadar
         }
 
         // Public implementation of Dispose pattern callable by consumers.
-        private bool _disposed = false;
+        private volatile bool _disposed = false;
         /// <summary>
         /// Calls vmm.Close() and cleans up DMA Unmanaged Resources.
         /// </summary>
@@ -295,11 +329,9 @@ namespace SharpRadar
 
             if (disposing)
             {
-                // Dispose managed state (managed objects).
+                _disposed = true;
                 vmm.Close(); // Cleanup vmmsharp resources
             }
-
-            _disposed = true;
         }
 
     }
@@ -320,4 +352,5 @@ namespace SharpRadar
         {
         }
     }
+
 }

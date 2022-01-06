@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -6,23 +6,12 @@ using System.Drawing;
 using System.IO;
 using System.Numerics;
 using System.Threading;
+using System.Text.Json.Serialization;
 
-namespace SharpRadar
+namespace eft_dma_radar
 {
 
     // GUI Testing Structures, may change
-
-    public class DebugListener : TraceListener // Debug Listener
-    {
-        public override void Write(string message)
-        {
-            Console.Write(message);
-        }
-        public override void WriteLine(string message)
-        {
-            Console.WriteLine(message);
-        }
-    }
 
     public class DebugStopwatch
     {
@@ -40,7 +29,7 @@ namespace SharpRadar
         {
             _sw.Stop();
             TimeSpan ts = _sw.Elapsed;
-            Debug.WriteLine($"{_name} Stopwatch Runtime: {ts.Milliseconds}ms");
+            Console.WriteLine($"{_name} Stopwatch Runtime: {ts.Milliseconds}ms");
         }
     }
 
@@ -106,23 +95,20 @@ namespace SharpRadar
     /// </summary>
     public class MapConfig
     {
-        [JsonProperty("x")]
-        public float X;
-        [JsonProperty("y")]
-        public float Y;
-        [JsonProperty("z")]
-        public float Z;
-        [JsonProperty("scale")]
-        public float Scale;
+        [JsonPropertyName("x")]
+        public float X { get; set; }
+        [JsonPropertyName("y")]
+        public float Y { get; set; }
+        [JsonPropertyName("z")]
+        public float Z { get; set; }
+        [JsonPropertyName("scale")]
+        public float Scale { get; set; }
 
 
         public static MapConfig LoadFromFile(string file)
         {
-            using (var stream = File.OpenText(file))
-            {
-                var json = new JsonSerializer();
-                return (MapConfig)json.Deserialize(stream, typeof(MapConfig));
-            }
+            var json = File.ReadAllText(file);
+            return JsonSerializer.Deserialize<MapConfig>(json);
         }
     }
 

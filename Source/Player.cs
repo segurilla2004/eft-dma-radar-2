@@ -2,7 +2,7 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 
-namespace SharpRadar
+namespace eft_dma_radar
 {
     /// <summary>
     /// Class containing Game Player Data. Use lock() when accessing instances of this class.
@@ -17,6 +17,10 @@ namespace SharpRadar
         private ulong _playerBase;
         private ulong _playerProfile;
         private ulong _playerInfo;
+        private ulong _healthController;
+        private ulong[] _bodyParts;
+        private ulong _movementContext;
+        private ulong _playerTransform;
         public int Health = -1;
         public bool IsAlive = true;
         public Vector3 Position = new Vector3(0, 0, 0);
@@ -24,31 +28,47 @@ namespace SharpRadar
 
         public Player(Memory mem, ulong playerBase, ulong playerProfile)
         {
-            _mem = mem;
-            _playerBase = playerBase;
-            _playerProfile = playerProfile;
-            _playerInfo = _mem.AddressOf(playerProfile + 0x28);
-            GroupID = _mem.ReadMemoryInt(_playerInfo + 0x18);
-            var playerNickname = _mem.AddressOf(_playerInfo + 0x10);
-            Name = _mem.ReadMemoryUnityString(playerNickname);
-            var isLocalPlayer = _mem.ReadMemoryBool(_playerBase + 0x7FB);
-            if (isLocalPlayer)
+            try
             {
-                Type = PlayerType.CurrentPlayer;
-                _currentPlayerGroupID = GroupID;
-            }
-            else
-            {
-                var playerSide = _mem.ReadMemoryInt(_playerInfo + 0x58); // Scav, PMC, etc.
-                if (playerSide == 0x4)
+                _mem = mem;
+                _playerBase = playerBase;
+                _playerProfile = playerProfile;
+                _playerInfo = _mem.ReadPtr(playerProfile + 0x28);
+                _healthController = _mem.ReadPtrChain(_playerBase, new uint[] { 0x4F0, 0x50, 0x18 });
+                _bodyParts = new ulong[7];
+                for (uint i = 0; i < 7; i++)
                 {
-                    var regDate = _mem.ReadMemoryInt(_playerInfo + 0x5C); // Bots wont have 'reg date'
-                    if (regDate == 0) Type = PlayerType.AIScav;
-                    else Type = PlayerType.PlayerScav;
+                    _bodyParts[i] = _mem.ReadPtrChain(_healthController, new uint[] { 0x30 + (i * 0x18), 0x10 });
                 }
-                //else if (GroupID == _currentPlayerGroupID) Type = PlayerType.Teammate;
-                else if (playerSide == 0x1 || playerSide == 0x2) Type = PlayerType.PMC;
-                else Type = PlayerType.Default;
+                _movementContext = _mem.ReadPtr(_playerBase + 0x40);
+                _playerTransform = _mem.ReadPtrChain(_playerBase, new uint[] { 0xA8, 0x28, 0x28, 0x10, 0x20 });
+                GroupID = _mem.ReadInt(_playerInfo + 0x18);
+                var playerNickname = _mem.ReadPtr(_playerInfo + 0x10);
+                Name = _mem.ReadUnityString(playerNickname);
+                var isLocalPlayer = _mem.ReadBool(_playerBase + 0x7FB);
+                if (isLocalPlayer)
+                {
+                    Type = PlayerType.CurrentPlayer;
+                    _currentPlayerGroupID = GroupID;
+                }
+                else
+                {
+                    var playerSide = _mem.ReadInt(_playerInfo + 0x58); // Scav, PMC, etc.
+                    if (playerSide == 0x4)
+                    {
+                        var regDate = _mem.ReadInt(_playerInfo + 0x5C); // Bots wont have 'reg date'
+                        if (regDate == 0) Type = PlayerType.AIScav;
+                        else Type = PlayerType.PlayerScav;
+                    }
+                    //else if (GroupID == _currentPlayerGroupID) Type = PlayerType.Teammate;
+                    else if (playerSide == 0x1 || playerSide == 0x2) Type = PlayerType.PMC;
+                    else Type = PlayerType.Default;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ERROR during Player constructor for base addr 0x{playerBase.ToString("X")}: {ex}");
+                throw;
             }
         }
 
@@ -59,36 +79,37 @@ namespace SharpRadar
         {
             try
             {
-                var playerTransform = _mem.AddressOf(_playerBase, new ulong[] { 0xA8, 0x28, 0x28, 0x10, 0x20 }, 0);
-                Position = GetPosition(playerTransform);
-                var movementContext = _mem.AddressOf(_playerBase + 0x40, 0);
-                Direction = GetDirection(movementContext);
-                Health = (int)GetHealth();
+                // ToDo - check player death
+                if (IsAlive) // Only update if alive
+                {
+                    Position = GetPosition();
+                    Direction = GetDirection();
+                    Health = GetHealth();
+                }
             } 
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ERROR updating player '{Name}': {ex}");
+            }
         }
 
         /// <summary>
         /// Get current player health.
         /// </summary>
-        private float GetHealth()
+        private int GetHealth()
         {
-            var healthController = _mem.AddressOf(_playerBase, new ulong[] { 0x4F0, 0x50, 0x18 }, 0);
             float totalHealth = 0;
-            for (uint i = 0; i < 7; i++)
+            for (uint i = 0; i < _bodyParts.Length; i++)
             {
-
-                var bodyPart = _mem.AddressOf(healthController + 0x30 + (i * 0x18), 0);
-                var bodyPartValue = _mem.AddressOf(bodyPart + 0x10, 0);
-                var health = _mem.ReadMemoryFloat(bodyPartValue + 0x10);
+                var health = _mem.ReadFloat(_bodyParts[i] + 0x10);
                 totalHealth += health;
             }
-            return totalHealth;
+            return (int)totalHealth;
         }
 
-        private float GetDirection(ulong movementContext)
+        private float GetDirection()
         {
-            float deg = _mem.ReadMemoryFloat(movementContext + 0x22C);
+            float deg = _mem.ReadFloat(_movementContext + 0x22C);
             if (deg < 0)
             {
                 return 360f + deg;
@@ -99,13 +120,13 @@ namespace SharpRadar
         /// <summary>
         /// Converts player transform to X,Y,Z coordinates (Vector3)
         /// </summary>
-        private unsafe Vector3 GetPosition(ulong transform)
+        private unsafe Vector3 GetPosition()
         {
             ulong pMatricesBuf = 0;
             ulong pIndicesBuf = 0;
             int index = 0;
 
-            var offsets = GetPositionOffset(transform);
+            var offsets = GetPositionOffset(_playerTransform);
             pMatricesBuf = offsets.Item1;
             pIndicesBuf = offsets.Item2;
             index = offsets.Item3;
@@ -134,8 +155,9 @@ namespace SharpRadar
                 index_relation = *(int*)((UInt64)pIndicesBuf + 0x4 * (UInt64)index_relation);
             }
 
-            //Marshal.FreeHGlobal(new IntPtr((long)pMatricesBufPtr.ToUInt64()));
-            //Marshal.FreeHGlobal(new IntPtr((long)pIndicesBufPtr.ToUInt64()));
+            // Free mem
+            Recycler.Pointers.Add(new IntPtr((long)pMatricesBuf));
+            Recycler.Pointers.Add(new IntPtr((long)pIndicesBuf));
 
             return new Vector3(result.X, result.Z, result.Y);
         }
@@ -145,22 +167,22 @@ namespace SharpRadar
         /// </summary>
         private unsafe Tuple<ulong, ulong, int> GetPositionOffset(ulong transform)
         {
-            var transform_internal = _mem.AddressOf(transform + 0x10);
+            var transform_internal = _mem.ReadPtr(transform + 0x10);
 
-            var pMatrix = _mem.AddressOf(transform_internal + 0x38);
-            int index = _mem.ReadMemoryInt(transform_internal + 0x40);
+            var pMatrix = _mem.ReadPtr(transform_internal + 0x38);
+            int index = _mem.ReadInt(transform_internal + 0x40);
 
-            var matrix_list_base = _mem.AddressOf(pMatrix + 0x18);
+            var matrix_list_base = _mem.ReadPtr(pMatrix + 0x18);
 
-            var dependency_index_table_base = _mem.AddressOf(pMatrix + 0x20);
+            var dependency_index_table_base = _mem.ReadPtr(pMatrix + 0x20);
 
             IntPtr pMatricesBufPtr = new IntPtr(Marshal.AllocHGlobal(sizeof(Matrix34) * index + sizeof(Matrix34)).ToInt64()); // sizeof(Matrix34) == 48
             void* pMatricesBuf = pMatricesBufPtr.ToPointer();
-            _mem.ReadMemoryToBuffer(matrix_list_base, pMatricesBufPtr, sizeof(Matrix34) * index + sizeof(Matrix34));
+            _mem.ReadBuffer(matrix_list_base, pMatricesBufPtr, sizeof(Matrix34) * index + sizeof(Matrix34));
 
             IntPtr pIndicesBufPtr = new IntPtr(Marshal.AllocHGlobal(sizeof(int) * index + sizeof(int)).ToInt64());
             void* pIndicesBuf = pIndicesBufPtr.ToPointer();
-            _mem.ReadMemoryToBuffer(dependency_index_table_base, pIndicesBufPtr, sizeof(int) * index + sizeof(int));
+            _mem.ReadBuffer(dependency_index_table_base, pIndicesBufPtr, sizeof(int) * index + sizeof(int));
 
             return Tuple.Create((UInt64)pMatricesBuf, (UInt64)pIndicesBuf, index);
         }

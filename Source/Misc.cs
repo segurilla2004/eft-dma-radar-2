@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace SharpRadar
+namespace eft_dma_radar
 {
     public static class Extensions
     {
