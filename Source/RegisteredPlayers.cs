@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 
 namespace eft_dma_radar
 {
@@ -61,7 +62,7 @@ namespace eft_dma_radar
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"ERROR iterating registered player {i + 1} of {count}: {ex}");
+                    Debug.WriteLine($"ERROR iterating registered player {i + 1} of {count}: {ex}");
                 }
             }
         }

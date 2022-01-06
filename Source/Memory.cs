@@ -25,7 +25,7 @@ namespace eft_dma_radar
         {
             get
             {
-                return _game.Players;
+                return _game?.Players;
             }
         }
 
@@ -69,18 +69,10 @@ namespace eft_dma_radar
                     }
                     catch
                     {
-                        if (Heartbeat())
-                        {
-                            Console.WriteLine("Unhandled exception in game loop - restarting...");
-                            continue;
-                        }
-                        else
-                        {
-                            Console.WriteLine("Game is no longer running!");
-                            break;
-                        }
+                        Debug.WriteLine("Unhandled exception in game, restarting...");
                     }
                 }
+                Console.WriteLine("Escape From Tarkov is no longer running!");
             }
         }
 

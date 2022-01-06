@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
 
@@ -67,7 +68,7 @@ namespace eft_dma_radar
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"ERROR during Player constructor for base addr 0x{playerBase.ToString("X")}: {ex}");
+                Debug.WriteLine($"ERROR during Player constructor for base addr 0x{playerBase.ToString("X")}: {ex}");
                 throw;
             }
         }
@@ -80,6 +81,7 @@ namespace eft_dma_radar
             try
             {
                 // ToDo - check player death
+                // ToDo - check player exfil
                 if (IsAlive) // Only update if alive
                 {
                     Position = GetPosition();
@@ -89,7 +91,7 @@ namespace eft_dma_radar
             } 
             catch (Exception ex)
             {
-                Console.WriteLine($"ERROR updating player '{Name}': {ex}");
+                Debug.WriteLine($"ERROR updating player '{Name}': {ex}");
             }
         }
 

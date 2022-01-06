@@ -36,21 +36,12 @@ namespace eft_dma_radar
         {
             while (true)
             {
-                if (GetGOM()) break;
-                else Thread.Sleep(500);
+                if (!_mem.Heartbeat()) throw new Exception("Game is not running!");
+                if (GetGOM() && GetLGW()) break;
+                else Thread.Sleep(1000);
             }
-            while (true)
-            {
-                if (GetLGW()) break;
-                else Thread.Sleep(500);
-            }
-            if (GetRegPlayers())
-            {
-                Console.WriteLine("Raid has started!");
-                InGame = true;
-                return;
-            }
-            else throw new Exception("ERROR starting game.");
+            Console.WriteLine("Raid has started!");
+            InGame = true;
         }
 
         /// <summary>
@@ -115,33 +106,21 @@ namespace eft_dma_radar
                     "GameWorld");
                 if (gameWorld == 0) throw new DMAException("Unable to find GameWorld Object, likely not in raid.");
                 _localGameWorld = _mem.ReadPtrChain(gameWorld, new uint[] { 0x30, 0x18, 0x28 });
-                var regPlayers = _mem.ReadPtr(_localGameWorld + 0x80);
-                int playerCount = _mem.ReadInt(regPlayers + 0x18);
-                if (playerCount > 1) return true;
-                else return false;
+                var rgtPlayers = new RegisteredPlayers(_mem, _mem.ReadPtr(_localGameWorld + 0x80));
+                if (rgtPlayers.PlayerCount > 1)
+                {
+                    _rgtPlayers = rgtPlayers;
+                    return true;
+                }
+                else
+                {
+                    Debug.WriteLine("Local Game World does not contain players (hideout?)");
+                    return false;
+                }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"ERROR getting Local Game World: {ex}");
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Gets Registered Players list
-        /// </summary>
-        private bool GetRegPlayers()
-        {
-            try
-            {
-                var baseAddr = _mem.ReadPtr(_localGameWorld + 0x80);
-                var rgtPlayers = new RegisteredPlayers(_mem, baseAddr);
-                _rgtPlayers = rgtPlayers;
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"ERROR getting Registered Players: {ex}");
                 return false;
             }
         }

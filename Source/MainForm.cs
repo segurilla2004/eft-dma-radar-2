@@ -95,9 +95,10 @@ namespace eft_dma_radar
         {
             lock (_renderLock)
             {
-                if (_memory.InGame && CurrentPlayer != null)
+                Player currentPlayer;
+                if (_memory.InGame && (currentPlayer = CurrentPlayer) is not null)
                 {
-                    var render = GetRender(); // Construct next frame
+                    var render = GetRender(currentPlayer); // Construct next frame
                     mapCanvas.Image = render; // Render next frame
 
                     // Cleanup Resources
@@ -110,7 +111,7 @@ namespace eft_dma_radar
         /// <summary>
         /// Draws next render frame and returns a completed Bitmap
         /// </summary>
-        private Bitmap GetRender()
+        private Bitmap GetRender(Player currentPlayer)
         {
             int zoom = (int)(_maxZoom * _zoom); // Get zoom level
             double aspect = mapCanvas.Width / mapCanvas.Height;
@@ -154,11 +155,11 @@ namespace eft_dma_radar
                 MapPosition currentPlayerPos;
                 Vector3 currentPlayerRawPos;
                 double currentPlayerDirection;
-                lock (CurrentPlayer) // Obtain object lock
+                lock (currentPlayer) // Obtain object lock
                 {
-                    currentPlayerRawPos = CurrentPlayer.Position;
-                    currentPlayerDirection = Deg2Rad(CurrentPlayer.Direction);
-                    label_Pos.Text = $"X: {CurrentPlayer.Position.X}\r\nY: {CurrentPlayer.Position.Y}\r\nZ: {CurrentPlayer.Position.Z}";
+                    currentPlayerRawPos = currentPlayer.Position;
+                    currentPlayerDirection = Deg2Rad(currentPlayer.Direction);
+                    label_Pos.Text = $"X: {currentPlayer.Position.X}\r\nY: {currentPlayer.Position.Y}\r\nZ: {currentPlayer.Position.Z}";
                 }
                 currentPlayerPos = VectorToMapPos(currentPlayerRawPos);
                 // Get map frame bounds (Based on Zoom Level, centered on Current Player)
@@ -173,7 +174,8 @@ namespace eft_dma_radar
                         gr.DrawLine(grn, point1, point2);
                     }
                     // Draw Other Players
-                    foreach (KeyValuePair<string, Player> player in _memory.Players) // Draw PMCs
+                    var allPlayers = _memory.Players;
+                    if (allPlayers is not null) foreach (KeyValuePair<string, Player> player in allPlayers) // Draw PMCs
                     {
                         lock (player.Value) // Obtain object lock
                         {
