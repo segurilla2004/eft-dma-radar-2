@@ -4,13 +4,11 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 
-namespace SharpRadar
+namespace eft_dma_radar
 {
     internal static class Program
     {
         private static Mutex _mutex;
-        /* Remember to turn off DEBUG CONSTANT in Properties! */
-        private static readonly DebugListener _debug = new DebugListener();
         private static Memory _memory;
         private delegate bool EventHandler(int sig);
         private static EventHandler _handler;
@@ -23,18 +21,16 @@ namespace SharpRadar
             Console.OutputEncoding = System.Text.Encoding.Unicode; // allow russian chars
             try
             {
-                _mutex = new Mutex(true, "CD953537-CB17-4735-82DC-A449D372C938", out bool singleton);
+                _mutex = new Mutex(true, "9A19103F-16F7-4668-BE54-9A1E7A4F7556", out bool singleton);
                 if (singleton)
                 {
-                    Debug.Listeners.Add(_debug); // Provide console logging when in debug mode
                     _memory = new Memory(); // vmm.Init
                     _handler += new EventHandler(ShutdownHandler);
                     SetConsoleCtrlHandler(_handler, true); // Handle Ctrl-C exit
                     AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit; // Handle application exit
                     Console.WriteLine("Starting up GUI...");
-                    Application.EnableVisualStyles();
-                    Application.SetCompatibleTextRenderingDefault(false);
-                    Application.Run(new MainForm(_memory));
+					ApplicationConfiguration.Initialize();
+					Application.Run(new MainForm(_memory));
                 }
                 else
                 {
@@ -43,7 +39,7 @@ namespace SharpRadar
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.ToString(), "SharpRadar", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.ToString(), "EFT Radar", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
