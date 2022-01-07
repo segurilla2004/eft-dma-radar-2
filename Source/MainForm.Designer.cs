@@ -82,7 +82,7 @@
             this.mapCanvas.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.mapCanvas.Name = "mapCanvas";
             this.mapCanvas.Size = new System.Drawing.Size(1322, 1027);
-            this.mapCanvas.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.mapCanvas.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
             this.mapCanvas.TabIndex = 2;
             this.mapCanvas.TabStop = false;
             // 

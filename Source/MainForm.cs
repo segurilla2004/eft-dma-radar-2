@@ -114,7 +114,7 @@ namespace eft_dma_radar
         private Bitmap GetRender(Player currentPlayer)
         {
             int zoom = (int)(_maxZoom * _zoom); // Get zoom level
-            double aspect = mapCanvas.Width / mapCanvas.Height;
+            double aspect = (double)mapCanvas.Width / (double)mapCanvas.Height; // Get aspect ratio of drawing canvas (ex. 16:9)
             int strokeLength = zoom / 125; // Lower constant = longer stroke
             int fontSize = zoom / 100;
             if (strokeLength < 5) strokeLength = 5; // Min value
@@ -163,7 +163,9 @@ namespace eft_dma_radar
                 }
                 currentPlayerPos = VectorToMapPos(currentPlayerRawPos);
                 // Get map frame bounds (Based on Zoom Level, centered on Current Player)
-                var bounds = new Rectangle(currentPlayerPos.X - (int)(zoom * aspect) / 2, currentPlayerPos.Y - zoom / 2, (int)(zoom * aspect), zoom);
+                var xZoom = (int)Math.Round(zoom * aspect);
+                var bounds = new Rectangle(currentPlayerPos.X - xZoom / 2, currentPlayerPos.Y - zoom / 2, xZoom, zoom);
+                Console.WriteLine($"ASPECT: {aspect}, X:{xZoom}, Y:{zoom}");
                 using (var gr = Graphics.FromImage(render)) // Get fresh frame
                 {
                     // Draw Current Player
@@ -207,7 +209,7 @@ namespace eft_dma_radar
                                 else pen = red; // Default
                                 {
                                     var height = playerPos.Height - currentPlayerPos.Height;
-                                    var dist = (int)(Math.Sqrt((Math.Pow(currentPlayerRawPos.X - player.Value.Position.X, 2) + Math.Pow(currentPlayerRawPos.Y - player.Value.Position.Y, 2))));
+                                    var dist = (int)Math.Round(Math.Sqrt((Math.Pow(currentPlayerRawPos.X - player.Value.Position.X, 2) + Math.Pow(currentPlayerRawPos.Y - player.Value.Position.Y, 2))));
                                     gr.DrawString($"{player.Value.Name} ({player.Value.Health})\nH: {height} D: {dist}", drawFont, drawBrush, playerPos.GetNamePoint(fontSize));
                                     gr.DrawEllipse(pen, new Rectangle(playerPos.GetPlayerCirclePoint(strokeLength / 2), new Size((int)(strokeLength), (int)(strokeLength)))); // smaller circle
                                     Point point1 = new Point(playerPos.X, playerPos.Y);
@@ -262,9 +264,9 @@ namespace eft_dma_radar
             var y = zeroY - (vector.Y * scale); // Invert 'Y' unity 0,0 bottom left, C# top left
             return new MapPosition()
             {
-                X = (int)x,
-                Y = (int)y,
-                Height = (int)vector.Z
+                X = (int)Math.Round(x),
+                Y = (int)Math.Round(y),
+                Height = (int)Math.Round(vector.Z)
             };
         }
 

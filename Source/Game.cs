@@ -38,7 +38,7 @@ namespace eft_dma_radar
             {
                 if (!_mem.Heartbeat()) throw new Exception("Game is not running!");
                 if (GetGOM() && GetLGW()) break;
-                else Thread.Sleep(1000);
+                else Thread.Sleep(1500);
             }
             Console.WriteLine("Raid has started!");
             InGame = true;

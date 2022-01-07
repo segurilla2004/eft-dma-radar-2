@@ -24,6 +24,7 @@ namespace eft_dma_radar
         private ulong _playerTransform;
         public int Health = -1;
         public bool IsAlive = true;
+        public bool HasExfild = false;
         public Vector3 Position = new Vector3(0, 0, 0);
         public float Direction = 0f;
 
@@ -82,8 +83,9 @@ namespace eft_dma_radar
             {
                 // ToDo - check player death
                 // ToDo - check player exfil
-                if (IsAlive) // Only update if alive
+                if (IsAlive && !HasExfild) // Only update if alive/in-raid
                 {
+
                     Position = GetPosition();
                     Direction = GetDirection();
                     Health = GetHealth();
@@ -106,7 +108,7 @@ namespace eft_dma_radar
                 var health = _mem.ReadFloat(_bodyParts[i] + 0x10);
                 totalHealth += health;
             }
-            return (int)totalHealth;
+            return (int)Math.Round(totalHealth);
         }
 
         private float GetDirection()
