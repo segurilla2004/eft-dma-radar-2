@@ -37,11 +37,9 @@
             this.label2 = new System.Windows.Forms.Label();
             this.trackBar_EnemyAim = new System.Windows.Forms.TrackBar();
             this.trackBar_AimLength = new System.Windows.Forms.TrackBar();
-            this.label1 = new System.Windows.Forms.Label();
-            this.label_Pos = new System.Windows.Forms.Label();
             this.label_Map = new System.Windows.Forms.Label();
             this.button_Map = new System.Windows.Forms.Button();
-            this.trackBar_Zoom = new System.Windows.Forms.TrackBar();
+            this.label_Pos = new System.Windows.Forms.Label();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.mapCanvas)).BeginInit();
@@ -49,7 +47,6 @@
             this.groupBox1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar_EnemyAim)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar_AimLength)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.trackBar_Zoom)).BeginInit();
             this.SuspendLayout();
             // 
             // tabControl1
@@ -65,6 +62,7 @@
             // 
             // tabPage1
             // 
+            this.tabPage1.Controls.Add(this.label_Pos);
             this.tabPage1.Controls.Add(this.mapCanvas);
             this.tabPage1.Location = new System.Drawing.Point(4, 24);
             this.tabPage1.Name = "tabPage1";
@@ -82,7 +80,7 @@
             this.mapCanvas.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.mapCanvas.Name = "mapCanvas";
             this.mapCanvas.Size = new System.Drawing.Size(1322, 1027);
-            this.mapCanvas.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.mapCanvas.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.mapCanvas.TabIndex = 2;
             this.mapCanvas.TabStop = false;
             // 
@@ -103,11 +101,8 @@
             this.groupBox1.Controls.Add(this.label2);
             this.groupBox1.Controls.Add(this.trackBar_EnemyAim);
             this.groupBox1.Controls.Add(this.trackBar_AimLength);
-            this.groupBox1.Controls.Add(this.label1);
-            this.groupBox1.Controls.Add(this.label_Pos);
             this.groupBox1.Controls.Add(this.label_Map);
             this.groupBox1.Controls.Add(this.button_Map);
-            this.groupBox1.Controls.Add(this.trackBar_Zoom);
             this.groupBox1.Dock = System.Windows.Forms.DockStyle.Left;
             this.groupBox1.Location = new System.Drawing.Point(3, 3);
             this.groupBox1.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
@@ -166,25 +161,6 @@
             this.trackBar_AimLength.TabIndex = 11;
             this.trackBar_AimLength.Value = 500;
             // 
-            // label1
-            // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(195, 166);
-            this.label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(39, 15);
-            this.label1.TabIndex = 10;
-            this.label1.Text = "Zoom";
-            // 
-            // label_Pos
-            // 
-            this.label_Pos.AutoSize = true;
-            this.label_Pos.Location = new System.Drawing.Point(42, 115);
-            this.label_Pos.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.label_Pos.Name = "label_Pos";
-            this.label_Pos.Size = new System.Drawing.Size(0, 15);
-            this.label_Pos.TabIndex = 9;
-            // 
             // label_Map
             // 
             this.label_Map.AutoSize = true;
@@ -206,16 +182,14 @@
             this.button_Map.UseVisualStyleBackColor = true;
             this.button_Map.Click += new System.EventHandler(this.button_Map_Click);
             // 
-            // trackBar_Zoom
+            // label_Pos
             // 
-            this.trackBar_Zoom.Location = new System.Drawing.Point(197, 185);
-            this.trackBar_Zoom.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            this.trackBar_Zoom.Maximum = 99;
-            this.trackBar_Zoom.Name = "trackBar_Zoom";
-            this.trackBar_Zoom.Orientation = System.Windows.Forms.Orientation.Vertical;
-            this.trackBar_Zoom.Size = new System.Drawing.Size(45, 403);
-            this.trackBar_Zoom.TabIndex = 6;
-            this.trackBar_Zoom.Scroll += new System.EventHandler(this.trackBar_Zoom_Scroll);
+            this.label_Pos.AutoSize = true;
+            this.label_Pos.Location = new System.Drawing.Point(9, 3);
+            this.label_Pos.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label_Pos.Name = "label_Pos";
+            this.label_Pos.Size = new System.Drawing.Size(0, 15);
+            this.label_Pos.TabIndex = 10;
             // 
             // MainForm
             // 
@@ -228,13 +202,13 @@
             this.Text = "EFT Radar";
             this.tabControl1.ResumeLayout(false);
             this.tabPage1.ResumeLayout(false);
+            this.tabPage1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.mapCanvas)).EndInit();
             this.tabPage2.ResumeLayout(false);
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar_EnemyAim)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar_AimLength)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.trackBar_Zoom)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -250,11 +224,9 @@
         private Label label2;
         private TrackBar trackBar_EnemyAim;
         private TrackBar trackBar_AimLength;
-        private Label label1;
-        private Label label_Pos;
         private Label label_Map;
         private Button button_Map;
-        private TrackBar trackBar_Zoom;
+        private Label label_Pos;
     }
 }
 

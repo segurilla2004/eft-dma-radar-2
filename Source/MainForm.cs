@@ -23,9 +23,6 @@ namespace eft_dma_radar
         private int _mapIndex = 0;
         private Map _currentMap; // Current Selected Map
         private Bitmap _currentRender; // Currently rendered frame
-        private float _zoom = 1.0f;
-        private int _lastZoom = 0;
-        private const int _maxZoom = 3500;
         private Player CurrentPlayer
         {
             get
@@ -109,17 +106,26 @@ namespace eft_dma_radar
         }
 
         /// <summary>
-        /// Draws next render frame and returns a completed Bitmap
+        /// Draws next render frame and returns a completed Bitmap.
+        /// ToDo - ReIntroduce Zooming
         /// </summary>
         private Bitmap GetRender(Player currentPlayer)
         {
-            int zoom = (int)(_maxZoom * _zoom); // Get zoom level
-            double aspect = (double)mapCanvas.Width / (double)mapCanvas.Height; // Get aspect ratio of drawing canvas (ex. 16:9)
-            int strokeLength = zoom / 125; // Lower constant = longer stroke
-            int fontSize = zoom / 100;
-            if (strokeLength < 5) strokeLength = 5; // Min value
-            int strokeWidth = zoom / 300; // Lower constant = wider stroke
-            if (strokeWidth < 4) strokeWidth = 4; // Min value
+            int strokeLength = 16;
+            int fontSize = 26;
+            int strokeWidth = 9; // Lower constant = wider stroke
+
+            MapPosition currentPlayerPos;
+            Vector3 currentPlayerRawPos;
+            double currentPlayerDirection;
+            lock (currentPlayer) // Obtain object lock
+            {
+                currentPlayerRawPos = currentPlayer.Position;
+                currentPlayerDirection = Deg2Rad(currentPlayer.Direction);
+                label_Pos.Text = $"X: {currentPlayer.Position.X}\r\nY: {currentPlayer.Position.Y}\r\nZ: {currentPlayer.Position.Z}";
+            }
+            currentPlayerPos = VectorToMapPos(currentPlayerRawPos);
+
             var render = (Bitmap)_currentMap.MapFile.Clone(); // Get a fresh map to draw on
             using (var drawFont = new Font("Arial", fontSize, FontStyle.Bold))
             using (var drawBrush = new SolidBrush(Color.Black))
@@ -152,20 +158,6 @@ namespace eft_dma_radar
                 Width = strokeWidth
             })
             {
-                MapPosition currentPlayerPos;
-                Vector3 currentPlayerRawPos;
-                double currentPlayerDirection;
-                lock (currentPlayer) // Obtain object lock
-                {
-                    currentPlayerRawPos = currentPlayer.Position;
-                    currentPlayerDirection = Deg2Rad(currentPlayer.Direction);
-                    label_Pos.Text = $"X: {currentPlayer.Position.X}\r\nY: {currentPlayer.Position.Y}\r\nZ: {currentPlayer.Position.Z}";
-                }
-                currentPlayerPos = VectorToMapPos(currentPlayerRawPos);
-                // Get map frame bounds (Based on Zoom Level, centered on Current Player)
-                var xZoom = (int)Math.Round(zoom * aspect);
-                var bounds = new Rectangle(currentPlayerPos.X - xZoom / 2, currentPlayerPos.Y - zoom / 2, xZoom, zoom);
-                Console.WriteLine($"ASPECT: {aspect}, X:{xZoom}, Y:{zoom}");
                 using (var gr = Graphics.FromImage(render)) // Get fresh frame
                 {
                     // Draw Current Player
@@ -183,45 +175,39 @@ namespace eft_dma_radar
                         {
                             if (player.Value.Type is PlayerType.CurrentPlayer) continue; // Already drawn current player, move on
                             var playerPos = VectorToMapPos(player.Value.Position);
-                            if (playerPos.X >= bounds.Left // Only draw if in bounds
-                                && playerPos.Y >= bounds.Top
-                                && playerPos.X <= bounds.Right
-                                && playerPos.Y <= bounds.Bottom)
+                            Pen pen;
+                            var playerDirection = Deg2Rad(player.Value.Direction);
+                            var aimLength = trackBar_EnemyAim.Value;
+                            if (player.Value.IsAlive is false)
+                            { // Draw 'X'
+                                gr.DrawLine(blk, new Point(playerPos.X - strokeLength / 2, playerPos.Y + strokeLength / 2), new Point(playerPos.X + strokeLength / 2, playerPos.Y - strokeLength / 2));
+                                gr.DrawLine(blk, new Point(playerPos.X - strokeLength / 2, playerPos.Y - strokeLength / 2), new Point(playerPos.X + strokeLength / 2, playerPos.Y + strokeLength / 2));
+                                continue;
+                            }
+                            else if (player.Value.Type is PlayerType.Teammate)
                             {
-                                Pen pen;
-                                var playerDirection = Deg2Rad(player.Value.Direction);
-                                var aimLength = trackBar_EnemyAim.Value;
-                                if (player.Value.IsAlive is false)
-                                { // Draw 'X'
-                                    gr.DrawLine(blk, new Point(playerPos.X - strokeLength / 2, playerPos.Y + strokeLength / 2), new Point(playerPos.X + strokeLength / 2, playerPos.Y - strokeLength / 2));
-                                    gr.DrawLine(blk, new Point(playerPos.X - strokeLength / 2, playerPos.Y - strokeLength / 2), new Point(playerPos.X + strokeLength / 2, playerPos.Y + strokeLength / 2));
-                                    continue;
-                                }
-                                else if (player.Value.Type is PlayerType.Teammate)
-                                {
-                                    pen = ltGrn;
-                                    aimLength = trackBar_AimLength.Value; // Allies use player's aim length
-                                }
-                                else if (player.Value.Type is PlayerType.PMC) pen = red;
-                                else if (player.Value.Type is PlayerType.PlayerScav) pen = wht;
-                                else if (player.Value.Type is PlayerType.AIBoss) pen = vlt;
-                                else if (player.Value.Type is PlayerType.AIScav) pen = ylw;
-                                else pen = red; // Default
-                                {
-                                    var height = playerPos.Height - currentPlayerPos.Height;
-                                    var dist = (int)Math.Round(Math.Sqrt((Math.Pow(currentPlayerRawPos.X - player.Value.Position.X, 2) + Math.Pow(currentPlayerRawPos.Y - player.Value.Position.Y, 2))));
-                                    gr.DrawString($"{player.Value.Name} ({player.Value.Health})\nH: {height} D: {dist}", drawFont, drawBrush, playerPos.GetNamePoint(fontSize));
-                                    gr.DrawEllipse(pen, new Rectangle(playerPos.GetPlayerCirclePoint(strokeLength / 2), new Size((int)(strokeLength), (int)(strokeLength)))); // smaller circle
-                                    Point point1 = new Point(playerPos.X, playerPos.Y);
-                                    Point point2 = new Point((int)(playerPos.X + Math.Cos(playerDirection) * aimLength), (int)(playerPos.Y + Math.Sin(playerDirection) * aimLength));
-                                    gr.DrawLine(pen, point1, point2);
-                                }
+                                pen = ltGrn;
+                                aimLength = trackBar_AimLength.Value; // Allies use player's aim length
+                            }
+                            else if (player.Value.Type is PlayerType.PMC) pen = red;
+                            else if (player.Value.Type is PlayerType.PlayerScav) pen = wht;
+                            else if (player.Value.Type is PlayerType.AIBoss) pen = vlt;
+                            else if (player.Value.Type is PlayerType.AIScav) pen = ylw;
+                            else pen = red; // Default
+                            {
+                                var plyrHeight = playerPos.Height - currentPlayerPos.Height;
+                                var plyrDist = (int)Math.Round(Math.Sqrt((Math.Pow(currentPlayerRawPos.X - player.Value.Position.X, 2) + Math.Pow(currentPlayerRawPos.Y - player.Value.Position.Y, 2))));
+                                gr.DrawString($"{player.Value.Name} ({player.Value.Health})\nH: {plyrHeight} D: {plyrDist}", drawFont, drawBrush, playerPos.GetNamePoint(fontSize));
+                                gr.DrawEllipse(pen, new Rectangle(playerPos.GetPlayerCirclePoint(strokeLength / 2), new Size((int)(strokeLength), (int)(strokeLength)))); // smaller circle
+                                Point point1 = new Point(playerPos.X, playerPos.Y);
+                                Point point2 = new Point((int)(playerPos.X + Math.Cos(playerDirection) * aimLength), (int)(playerPos.Y + Math.Sin(playerDirection) * aimLength));
+                                gr.DrawLine(pen, point1, point2);
                             }
                         }
                     }
                     /// ToDo - Handle Loot/Items
                 }
-                return CropImage(render, bounds); // Return the portion of the map to be rendered based on Zoom Level
+                return render; // Return the portion of the map to be rendered based on Zoom Level
             }
         }
 
@@ -229,26 +215,6 @@ namespace eft_dma_radar
         {
             deg = deg - 90; // Degrees offset needed for game
             return (Math.PI / 180) * deg;
-        }
-
-        /// <summary>
-        /// Returns a rectangular section of a source Bitmap
-        /// </summary>
-        private Bitmap CropImage(Bitmap source, Rectangle section)
-        {
-            try
-            {
-                var bitmap = new Bitmap(section.Width, section.Height);
-                using (var gr = Graphics.FromImage(bitmap))
-                {
-                    gr.DrawImage(source, 0, 0, section, GraphicsUnit.Pixel);
-                    return bitmap;
-                }
-            }
-            finally
-            {
-                Recycler.Bitmaps.Add(source); // Queue for disposal
-            }
         }
 
         /// <summary>
@@ -270,13 +236,6 @@ namespace eft_dma_radar
             };
         }
 
-
-        private void trackBar_Zoom_Scroll(object sender, EventArgs e)
-        {
-            int amtChanged = trackBar_Zoom.Value - _lastZoom;
-            _lastZoom = trackBar_Zoom.Value;
-            _zoom -= (.01f) * (amtChanged);
-        }
 
         private void button_Map_Click(object sender, EventArgs e)
         {
