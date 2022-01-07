@@ -6,6 +6,7 @@ This is a work in progress and has not been optimized/finished.
 2. Build/compile the app for Release x64.
 3. Import any maps you would like to use (.PNG files only) into the \Maps sub-folder. Make sure you have a corresponding .JSON file with the same name. For example, `Customs.PNG` and `Customs.JSON`
 4. Run the program on your 2nd PC (NOT GAME PC!!!) that has the DMA USB Cable plugged into. Click the Map button to cycle through maps if you need.
+5. Make sure you have "Automatic RAM Cleaner" turned OFF in your game settings.
 
 ### Map JSON Info
 Format your JSON as below. The X,Y values are the pixel coordinates on your .PNG image at game location 0,0,0 (this can be found on the right hand side of the window). You may need to play with the scale value to find the right setting depending on your map.
